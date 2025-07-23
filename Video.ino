@@ -1,145 +1,140 @@
-/*******************************************************************************
- * MJPEG Player for ESP32 + ST7789V3 (170x320)
- * 
- * Required libraries:
- * - Arduino_GFX: https://github.com/moononournation/Arduino_GFX
- * - JPEGDEC: https://github.com/bitbank2/JPEGDEC
- ******************************************************************************/
-
-#include <Arduino_GFX_Library.h>
-#include <JPEGDEC.h>
-#include <LittleFS.h>
-#include "MjpegClass.h"
 #include "PINS_ESP32-S3-LCD-ST7789_1_9.h"
 
-#define MJPEG_FILENAME "/output_short.mjpeg"
-#define GFX_SPEED 80000000
-#define GFX_BRIGHTNESS 63
+#define MJPEG_VIDEO_NORMAL   "/output.mjpeg"
+#define MJPEG_VIDEO_SHORT    "/output_short.mjpeg"
+#define MJPEG_VIDEO_SHORT_2  "/output_short_2.mjpeg"
 
+#include <Arduino_GFX_Library.h>
+#include <LittleFS.h>
+#include <JPEGDEC.h>
+#include "MjpegClass.h"
 
-
-// --- MJPEG variables ---
+// --- MJPEG player ---
 MjpegClass mjpeg;
 uint8_t *mjpeg_buf;
-uint16_t *output_buf;
-long output_buf_size, estimateBufferSize;
-unsigned long total_frames, total_read_video, total_decode_video, total_show_video, start_ms, curr_ms;
+File mjpegFile;
+bool videoPlaying = false;
 
-// --- JPEG rendering callback ---
-int jpegDrawCallback(JPEGDRAW *pDraw)
-{
-  unsigned long s = millis();
+// --- Video list ---
+const char *videoList[] = {
+  MJPEG_VIDEO_NORMAL,
+  MJPEG_VIDEO_SHORT,
+  MJPEG_VIDEO_SHORT_2
+};
+
+int currentVideoIndex = 0;  // 0 = normale, 1 = short, 2 = short_2
+int specialIndex = 1;       // alterna tra 1 e 2
+
+// --- FPS control ---
+unsigned long lastFrameTime = 0;
+const unsigned long frameInterval = 1000 / 30;
+
+// --- Debounce ---
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50;
+bool lastButtonState = HIGH;
+
+uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
+
+int jpegDrawCallback(JPEGDRAW *pDraw) {
   gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
-  total_show_video += millis() - s;
   return 1;
 }
 
-void setup()
-{
-  Serial.begin(115200);
-  delay(500);
-  Serial.println("MJPEG Player Start");
+void startVideo(const char *filename) {
+  if (mjpegFile) mjpegFile.close();
 
-  // --- Display initialization ---
-  if (!gfx->begin(GFX_SPEED)) {
-    gfx->fillScreen(BLACK);  // Clears the screen from old images
-    Serial.println("Display init FAILED!");
+  mjpegFile = LittleFS.open(filename);
+  if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
+    Serial.printf("⚠️ Impossibile aprire %s\n", filename);
+    return;
+  }
+
+  mjpeg.setup(&mjpegFile, mjpeg_buf, jpegDrawCallback, true, 0, 0, gfx->width(), gfx->height());
+  mjpeg.resetScale();
+  videoPlaying = true;
+  lastFrameTime = millis();
+  Serial.printf("▶️ Video avviato: %s\n", filename);
+}
+
+void stopVideo() {
+  if (mjpegFile) mjpegFile.close();
+  videoPlaying = false;
+}
+
+void initDisplay() {
+  if (!gfx->begin()) {
+    Serial.println("❌ Errore display");
     while (1);
   }
-  gfx->fillScreen(BLACK);  // Clears the screen from old images
+  gfx->fillScreen(BLACK);
+}
 
-
-  // --- PWM backlight (GPIO32) ---
-#if defined(GFX_BL)
-#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR < 3)
-  ledcSetup(0, 1000, 8);
-  ledcAttachPin(GFX_BL, 0);
-  ledcWrite(0, GFX_BRIGHTNESS);
-#else
-  ledcAttachChannel(GFX_BL, 1000, 8, 1);
-  ledcWrite(GFX_BL, GFX_BRIGHTNESS);
-#endif
-#endif
-
-  // --- Filesystem initialization (LittleFS) ---
+void initFS() {
   if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount FAILED!");
-    gfx->println("Filesystem Error!");
-    while (1);
-  }
-
-  // --- Buffer allocation ---
-  output_buf_size = gfx->width() * 4 * 2;
-  output_buf = (uint16_t *)heap_caps_aligned_alloc(16, output_buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
-  if (!output_buf) {
-    Serial.println("output_buf alloc failed!");
-    while (1);
-  }
-
-  estimateBufferSize = gfx->width() * gfx->height() * 2 / 5;
-  mjpeg_buf = (uint8_t *)heap_caps_malloc(estimateBufferSize, MALLOC_CAP_8BIT);
-  if (!mjpeg_buf) {
-    Serial.println("mjpeg_buf alloc failed!");
+    Serial.println("❌ Errore LittleFS");
     while (1);
   }
 }
 
-void loop()
-{
-  File mjpegFile = LittleFS.open(MJPEG_FILENAME, "r");
+void setup() {
+  Serial.begin(115200);
+  pinMode(GFX_BL, OUTPUT);
+  digitalWrite(GFX_BL, HIGH);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  if (!mjpegFile || mjpegFile.isDirectory()) {
-    Serial.println("File open FAILED: " MJPEG_FILENAME);
-    gfx->fillScreen(RED);
-    gfx->setCursor(10, 150);
-    gfx->setTextSize(2);
-    gfx->setTextColor(WHITE);
-    gfx->println("File not found!");
-    delay(5000);
-    return;
+  initDisplay();
+  initFS();
+
+  mjpeg_buf = (uint8_t *)heap_caps_malloc(40 * 1024, MALLOC_CAP_8BIT);
+  if (!mjpeg_buf) {
+    Serial.println("❌ MJPEG buffer non allocato");
+    while (1);
   }
 
-  Serial.println("MJPEG playback start");
+  currentVideoIndex = 0;
+  startVideo(videoList[currentVideoIndex]);
+}
 
-  start_ms = millis();
-  curr_ms = millis();
-  total_frames = 0;
-  total_read_video = 0;
-  total_decode_video = 0;
-  total_show_video = 0;
-
-  mjpeg.setup(
-    &mjpegFile, mjpeg_buf, jpegDrawCallback, true,
-    0, 0, gfx->width(), gfx->height()
-  );
-  mjpeg.resetScale();  // <--- Forces recalculation of scale and centering
-
-
-  while (mjpegFile.available() && mjpeg.readMjpegBuf()) {
-    total_read_video += millis() - curr_ms;
-    curr_ms = millis();
-
-    mjpeg.drawJpg();
-    delay(33);
-    total_decode_video += millis() - curr_ms;
-
-    curr_ms = millis();
-    total_frames++;
+void loop() {
+  // --- Pulsante con debounce ---
+  bool reading = digitalRead(BUTTON_PIN);
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
   }
 
-  int time_used = millis() - start_ms;
-  mjpegFile.close();
-  float fps = 1000.0 * total_frames / time_used;
+if (reading == LOW && lastButtonState == HIGH) {
+      // Cambia a video speciale
+      currentVideoIndex = specialIndex;
+      startVideo(videoList[currentVideoIndex]);
 
-  total_decode_video -= total_show_video;
+      // Alterna il prossimo video speciale
+      specialIndex = (specialIndex == 1) ? 2 : 1;
+    }
+  
 
-  Serial.println("MJPEG playback end");
-  Serial.printf("Total frames: %lu\n", total_frames);
-  Serial.printf("Time used: %d ms\n", time_used);
-  Serial.printf("FPS: %.2f\n", fps);
-  Serial.printf("Read MJPEG: %lu ms (%.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
-  Serial.printf("Decode: %lu ms (%.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
-  Serial.printf("Display: %lu ms (%.1f %%)\n", total_show_video, 100.0 * total_show_video / time_used);
+  lastButtonState = reading;
 
-  delay(2000); // Delay before repeating
+  // --- Riproduzione MJPEG ---
+  if (videoPlaying) {
+    unsigned long now = millis();
+    if (now - lastFrameTime >= frameInterval) {
+      if (mjpegFile.available() && mjpeg.readMjpegBuf()) {
+        mjpeg.drawJpg();
+        lastFrameTime = now;
+      } else {
+        stopVideo();
+
+        // Se era un video speciale, torna al normale
+        if (currentVideoIndex != 0) {
+          currentVideoIndex = 0;
+          startVideo(videoList[currentVideoIndex]);
+        }
+      }
+    }
+  }
+
+  delay(1);
 }

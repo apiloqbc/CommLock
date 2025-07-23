@@ -138,6 +138,16 @@ public:
 
     return false;
   }
+void reset() {
+  if (_input) {
+    File* file = (File*)_input;
+    file->seek(0);  // Cast esplicito per usare seek()
+  }
+  _inputindex = 0;
+  _mjpeg_buf_offset = 0;
+  _scale = -1;
+  _buf_read = 0;
+}
 
   void resetScale() {
   _scale = -1;
