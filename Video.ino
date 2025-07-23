@@ -1,10 +1,5 @@
 #include "PINS_ESP32-S3-LCD-ST7789_1_9.h"
 
-#define MJPEG_VIDEO_NORMAL   "/output.mjpeg"
-#define MJPEG_VIDEO_SHORT    "/output_short.mjpeg"
-#define MJPEG_VIDEO_SHORT_2  "/output_short_2.mjpeg"
-
-#include <Arduino_GFX_Library.h>
 #include <LittleFS.h>
 #include <JPEGDEC.h>
 #include "MjpegClass.h"
@@ -16,39 +11,41 @@ File mjpegFile;
 bool videoPlaying = false;
 
 // --- Video list ---
+#define MJPEG_VIDEO_NORMAL   "/output.mjpeg"
+#define MJPEG_VIDEO_SHORT    "/output_short.mjpeg"
+#define MJPEG_VIDEO_SHORT_2  "/output_short_2.mjpeg"
+
 const char *videoList[] = {
   MJPEG_VIDEO_NORMAL,
   MJPEG_VIDEO_SHORT,
   MJPEG_VIDEO_SHORT_2
 };
 
-int currentVideoIndex = 0;  // 0 = normale, 1 = short, 2 = short_2
-int specialIndex = 1;       // alterna tra 1 e 2
+int currentVideoIndex = 0;
+int specialIndex = 1;
 
 // --- FPS control ---
 unsigned long lastFrameTime = 0;
 const unsigned long frameInterval = 1000 / 30;
 
-// --- Debounce ---
+// --- Debounce button ---
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 50;
 bool lastButtonState = HIGH;
 
-uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
-  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-}
-
+// --- JPEG draw callback ---
 int jpegDrawCallback(JPEGDRAW *pDraw) {
   gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
   return 1;
 }
 
+// --- Avvia il video ---
 void startVideo(const char *filename) {
   if (mjpegFile) mjpegFile.close();
 
   mjpegFile = LittleFS.open(filename);
   if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
-    Serial.printf("⚠️ Impossibile aprire %s\n", filename);
+    Serial.printf("⚠️ Cannot open %s\n", filename);
     return;
   }
 
@@ -56,29 +53,33 @@ void startVideo(const char *filename) {
   mjpeg.resetScale();
   videoPlaying = true;
   lastFrameTime = millis();
-  Serial.printf("▶️ Video avviato: %s\n", filename);
+  Serial.printf("▶️ Playing video: %s\n", filename);
 }
 
+// --- Ferma la riproduzione ---
 void stopVideo() {
   if (mjpegFile) mjpegFile.close();
   videoPlaying = false;
 }
 
+// --- Inizializza display ---
 void initDisplay() {
   if (!gfx->begin()) {
-    Serial.println("❌ Errore display");
+    Serial.println("❌ Display init failed");
     while (1);
   }
   gfx->fillScreen(BLACK);
 }
 
+// --- Inizializza filesystem ---
 void initFS() {
   if (!LittleFS.begin()) {
-    Serial.println("❌ Errore LittleFS");
+    Serial.println("❌ LittleFS init failed");
     while (1);
   }
 }
 
+// --- Setup ---
 void setup() {
   Serial.begin(115200);
   pinMode(GFX_BL, OUTPUT);
@@ -90,7 +91,7 @@ void setup() {
 
   mjpeg_buf = (uint8_t *)heap_caps_malloc(40 * 1024, MALLOC_CAP_8BIT);
   if (!mjpeg_buf) {
-    Serial.println("❌ MJPEG buffer non allocato");
+    Serial.println("❌ Failed to allocate MJPEG buffer");
     while (1);
   }
 
@@ -98,26 +99,23 @@ void setup() {
   startVideo(videoList[currentVideoIndex]);
 }
 
+// --- Loop principale ---
 void loop() {
-  // --- Pulsante con debounce ---
   bool reading = digitalRead(BUTTON_PIN);
   if (reading != lastButtonState) {
     lastDebounceTime = millis();
   }
 
-if (reading == LOW && lastButtonState == HIGH) {
-      // Cambia a video speciale
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading == LOW && lastButtonState == HIGH) {
       currentVideoIndex = specialIndex;
       startVideo(videoList[currentVideoIndex]);
-
-      // Alterna il prossimo video speciale
       specialIndex = (specialIndex == 1) ? 2 : 1;
     }
-  
+  }
 
   lastButtonState = reading;
 
-  // --- Riproduzione MJPEG ---
   if (videoPlaying) {
     unsigned long now = millis();
     if (now - lastFrameTime >= frameInterval) {
@@ -126,8 +124,6 @@ if (reading == LOW && lastButtonState == HIGH) {
         lastFrameTime = now;
       } else {
         stopVideo();
-
-        // Se era un video speciale, torna al normale
         if (currentVideoIndex != 0) {
           currentVideoIndex = 0;
           startVideo(videoList[currentVideoIndex]);
