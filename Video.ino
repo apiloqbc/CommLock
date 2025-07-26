@@ -1,54 +1,61 @@
-#include "PINS_ESP32-S3-LCD-ST7789_1_9.h"
-
-#define MJPEG_VIDEO_NORMAL   "/output.mjpeg"
-#define MJPEG_VIDEO_SHORT    "/output_short.mjpeg"
-#define MJPEG_VIDEO_SHORT_2  "/output_short_2.mjpeg"
-
-#include <Arduino_GFX_Library.h>
+#include "PINS_ESP32-S3-LCD-ST7735_1_8.h"
+#include <Arduino.h>
 #include <LittleFS.h>
 #include <JPEGDEC.h>
 #include "MjpegClass.h"
+#include "DFRobotDFPlayerMini.h"
+
+// --- MJPEG File Paths ---
+#define MJPEG_VIDEO_NORMAL   "/output_2.mjpeg"
+#define MJPEG_VIDEO_SHORT    "/output_short_3.mjpeg"
+#define MJPEG_VIDEO_SHORT_2  "/output_short_4.mjpeg"
+
+// --- Shared pin for video and audio trigger ---
+#define BUTTON_PIN 45
+
+// --- DFPlayer Mini setup ---
+HardwareSerial mySerial(1); // UART1 (TX=10, RX=9)
+DFRobotDFPlayerMini player;
+
+// --- Button state ---
+bool lastButtonState = HIGH;
+bool buttonPressed = false;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50;
 
 // --- MJPEG player ---
 MjpegClass mjpeg;
-uint8_t *mjpeg_buf;
 File mjpegFile;
+uint8_t* mjpeg_buf;
 bool videoPlaying = false;
 
-// --- Video list ---
-const char *videoList[] = {
+// --- List of videos ---
+const char* videoList[] = {
   MJPEG_VIDEO_NORMAL,
   MJPEG_VIDEO_SHORT,
   MJPEG_VIDEO_SHORT_2
 };
 
-int currentVideoIndex = 0;  // 0 = normale, 1 = short, 2 = short_2
-int specialIndex = 1;       // alterna tra 1 e 2
+int currentVideoIndex = 0;
+int specialIndex = 1;  // Alternates between short video 1 and 2
 
-// --- FPS control ---
+// --- MJPEG frame rate (25 FPS) ---
 unsigned long lastFrameTime = 0;
-const unsigned long frameInterval = 1000 / 30;
+const unsigned long frameInterval = 1000 / 25;
 
-// --- Debounce ---
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
-bool lastButtonState = HIGH;
-
-uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
-  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-}
-
-int jpegDrawCallback(JPEGDRAW *pDraw) {
+// --- JPEG draw callback ---
+int jpegDrawCallback(JPEGDRAW* pDraw) {
   gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
   return 1;
 }
 
-void startVideo(const char *filename) {
+// --- Start a video ---
+void startVideo(const char* filename) {
   if (mjpegFile) mjpegFile.close();
 
   mjpegFile = LittleFS.open(filename);
   if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
-    Serial.printf("⚠️ Impossibile aprire %s\n", filename);
+    Serial.printf("⚠️ Error opening file: %s\n", filename);
     return;
   }
 
@@ -56,79 +63,111 @@ void startVideo(const char *filename) {
   mjpeg.resetScale();
   videoPlaying = true;
   lastFrameTime = millis();
-  Serial.printf("▶️ Video avviato: %s\n", filename);
+  Serial.printf("▶️ Starting video: %s\n", filename);
 }
 
+// --- Stop the video ---
 void stopVideo() {
   if (mjpegFile) mjpegFile.close();
   videoPlaying = false;
 }
 
+// --- Initialize the display ---
 void initDisplay() {
   if (!gfx->begin()) {
-    Serial.println("❌ Errore display");
-    while (1);
+    Serial.println("❌ Display error");
+    while (1) delay(100);
   }
   gfx->fillScreen(BLACK);
+  Serial.println("✅ Display ready");
 }
 
+// --- Initialize LittleFS filesystem ---
 void initFS() {
   if (!LittleFS.begin()) {
-    Serial.println("❌ Errore LittleFS");
-    while (1);
+    Serial.println("❌ LittleFS initialization failed");
+    while (1) delay(100);
+  }
+  Serial.println("✅ LittleFS ready");
+}
+
+// --- Initialize DFPlayer Mini ---
+void initDFPlayer() {
+  mySerial.begin(9600, SERIAL_8N1, 9, 10); // RX=9, TX=10
+  if (player.begin(mySerial)) {
+    Serial.println("🎵 DFPlayer ready");
+    player.volume(25); // Volume from 0 to 30
+    // No track plays at startup
+  } else {
+    Serial.println("❌ DFPlayer not detected");
+    while (true); // Halt execution
   }
 }
 
+// --- Setup function ---
 void setup() {
   Serial.begin(115200);
-  pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
+  delay(300);  // Allow power stabilization
+
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   initDisplay();
   initFS();
+  initDFPlayer();
 
-  mjpeg_buf = (uint8_t *)heap_caps_malloc(40 * 1024, MALLOC_CAP_8BIT);
+  mjpeg_buf = (uint8_t*)heap_caps_malloc(40 * 1024, MALLOC_CAP_8BIT);
   if (!mjpeg_buf) {
-    Serial.println("❌ MJPEG buffer non allocato");
-    while (1);
+    Serial.println("❌ Failed to allocate MJPEG buffer");
+    while (1) delay(100);
   }
 
-  currentVideoIndex = 0;
-  startVideo(videoList[currentVideoIndex]);
+  startVideo(videoList[currentVideoIndex]);  // Start the default video WITHOUT audio
 }
 
+// --- Main loop ---
 void loop() {
-  // --- Pulsante con debounce ---
+  // --- Button handling with debounce ---
   bool reading = digitalRead(BUTTON_PIN);
+
   if (reading != lastButtonState) {
     lastDebounceTime = millis();
   }
 
-if (reading == LOW && lastButtonState == HIGH) {
-      // Cambia a video speciale
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading == LOW && !buttonPressed) {
+      buttonPressed = true;
+
+      // Switch to short video
       currentVideoIndex = specialIndex;
       startVideo(videoList[currentVideoIndex]);
-
-      // Alterna il prossimo video speciale
       specialIndex = (specialIndex == 1) ? 2 : 1;
+
+      // Play audio ONLY if it's a short video
+      if (currentVideoIndex != 0) {
+        player.next();
+        Serial.println("🎶 Audio started with short video");
+      }
     }
-  
+
+    if (reading == HIGH) {
+      buttonPressed = false;
+    }
+  }
 
   lastButtonState = reading;
 
-  // --- Riproduzione MJPEG ---
+  // --- MJPEG playback ---
   if (videoPlaying) {
     unsigned long now = millis();
     if (now - lastFrameTime >= frameInterval) {
       if (mjpegFile.available() && mjpeg.readMjpegBuf()) {
         mjpeg.drawJpg();
         lastFrameTime = now;
+        delay(1);  // Friendly to watchdog
       } else {
         stopVideo();
-
-        // Se era un video speciale, torna al normale
         if (currentVideoIndex != 0) {
+          // After short video, return to main video WITHOUT audio
           currentVideoIndex = 0;
           startVideo(videoList[currentVideoIndex]);
         }
@@ -136,5 +175,5 @@ if (reading == LOW && lastButtonState == HIGH) {
     }
   }
 
-  delay(1);
+  delay(1);  // Watchdog-friendly idle
 }
