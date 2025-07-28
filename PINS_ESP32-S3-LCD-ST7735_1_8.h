@@ -4,10 +4,7 @@
 // --- Display backlight pin ---
 // -1 means backlight is not controlled by any GPIO
 #define GFX_BL     -1       
-
-// --- Button pin (optional use) ---
-#define BUTTON_PIN 45       
-
+   
 // --- Display resolution ---
 #define TFT_WIDTH  128
 #define TFT_HEIGHT 160
