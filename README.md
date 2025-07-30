@@ -1,56 +1,90 @@
 # CommandLock – MJPEG Video on SPI Display with ESP32
 
-This project allows you to play a short MJPEG video on a 1.8" SPI TFT display (128x160 pixels) using an ESP32 microcontroller. It's ideal for visual effects, interactive demos, or embedded prototypes.
+This project allows you to play short MJPEG videos on a 1.8" SPI TFT display (128x160 pixels) using an ESP32 microcontroller. It's ideal for creating visual effects, interactive installations, or low-cost media displays.
 
 ---
 
 ## 🧰 Required Hardware
 
 - ESP32 (tested with ESP32-S3)
-- 1.8" SPI TFT Display (ST7735 controller, 128x160 resolution)
-- Wiring based on this guide:  
-  https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-an-esp32-microcontroller/
+- 1.8" SPI TFT Display with ST7735 controller (128x160 resolution)
+- Pushbuttons (up to 9)
+- Power source (USB or regulated 3.3V supply)
+- Optional: microSD card (if not using SPIFFS)
+
+Wiring guide reference:  
+https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-an-esp32-microcontroller/
 
 ---
 
-## 🧪 Software Dependencies
+## 🔌 Display Pinout (ESP32 ↔ TFT ST7735)
 
-- Arduino IDE (or a compatible environment)
-- Arduino libraries:
-  - Adafruit_GFX
-  - Adafruit_ST7735
-  - SPI
-  - Any others required by `MjpegClass.h`
+| TFT Pin     | ESP32 Pin | Function           |
+|-------------|------------|--------------------|
+| VCC         | 3.3V       | Power              |
+| GND         | GND        | Ground             |
+| CS          | GPIO 5     | Chip Select        |
+| RESET       | GPIO 18    | Reset              |
+| DC / RS     | GPIO 16    | Data/Command Select|
+| MOSI (SDA)  | GPIO 11    | SPI Data           |
+| SCK         | GPIO 12    | SPI Clock          |
+| LED (BL)    | 3.3V       | Backlight (via resistor or directly) |
+
+> You can modify these pin assignments in the file `PINS_ESP32-S3-LCD-ST7735_1_8.h`.
 
 ---
 
 ## 🎞️ Video Conversion with ffmpeg
 
-You can convert any `.mp4` video into an `.mjpeg` file compatible with the display using this command:
+To prepare videos for playback, convert any `.mp4` file to `.mjpeg` format using this command:
 
 ```
-ffmpeg -i VID-20250717-WA0019.mp4 -t 5 -vcodec mjpeg -an -s 320x220 -aspect 1:1 -q:v 5 data/output_short_2.mjpeg
+ffmpeg -i input.mp4 -t 5 -vcodec mjpeg -an -s 320x220 -aspect 1:1 -q:v 5 output.mjpeg
 ```
 
-### Parameter Breakdown
+### Explanation of Parameters
 
-- `-i`: input video file
-- `-t 5`: set duration to 5 seconds
-- `-vcodec mjpeg`: encode using MJPEG
-- `-an`: disable audio
-- `-s 320x220`: output resolution (can be resized later)
-- `-aspect 1:1`: force square aspect ratio
-- `-q:v 5`: quality setting (lower means better; 2 = high, 31 = low)
+- `-i`: Input video file
+- `-t 5`: Duration of 5 seconds
+- `-vcodec mjpeg`: Use MJPEG codec
+- `-an`: Remove audio
+- `-s 320x220`: Output resolution
+- `-aspect 1:1`: Force 1:1 aspect ratio
+- `-q:v 5`: Quality (2 = high, 31 = low)
 
-> You can later resize the output to 128x160 to match the screen exactly.
+> Resize output to 128x160 to match display resolution if needed.
+
+---
+
+## 🎬 Video Selection via Buttons
+
+This project supports up to 9 buttons to trigger different video files.
+
+Each button is wired to a specific GPIO pin on the ESP32 and mapped to a corresponding video file.
+
+| Button | GPIO Pin | Plays Video File    |
+|--------|----------|---------------------|
+| 1      | 14       | `/video1.mjpeg`     |
+| 2      | 15       | `/video2.mjpeg`     |
+| 3      | 16       | `/video3.mjpeg`     |
+| 4      | 17       | `/video4.mjpeg`     |
+| 5      | 19       | `/video5.mjpeg`     |
+| 6      | 20       | `/video6.mjpeg`     |
+| 7      | 21       | `/video7.mjpeg`     |
+| 8      | 22       | `/video8.mjpeg`     |
+| 9      | 48       | `/video9.mjpeg`     |
+
+> Buttons must pull the GPIO pin LOW when pressed. Use internal pull-ups or external resistors as needed.
 
 ---
 
 ## 📤 Upload & Playback
 
-1. Upload the `.mjpeg` file to SPIFFS or an SD card (depending on your sketch).
-2. Open and upload `Video.ino` to your ESP32 using the Arduino IDE.
-3. The video will play automatically on boot.
+1. Store your `.mjpeg` files in the correct location (SPIFFS or SD card).
+2. Open `Video.ino` in Arduino IDE.
+3. Ensure libraries like Adafruit_ST7735, Adafruit_GFX, and SPI are installed.
+4. Compile and upload the sketch to your ESP32.
+5. On startup, the display initializes and waits for button input to play videos.
 
 ---
 
@@ -58,8 +92,8 @@ ffmpeg -i VID-20250717-WA0019.mp4 -t 5 -vcodec mjpeg -an -s 320x220 -aspect 1:1 
 
 ```
 CommandLock/
-├── MjpegClass.h                      # MJPEG decoder class
-├── PINS_ESP32-S3-LCD-ST7735_1_8.h    # Display pin configuration
+├── MjpegClass.h                      # MJPEG decoding class
+├── PINS_ESP32-S3-LCD-ST7735_1_8.h    # Pin mapping for ESP32 and display
 ├── Video.ino                         # Main Arduino sketch
 ├── README.md                         # This documentation
 └── .gitignore                        # Git ignore rules
@@ -69,17 +103,18 @@ CommandLock/
 
 ## 🧠 Notes
 
-- Performance depends on the ESP32 model and storage method.
-- Lowering resolution or video length can improve playback.
-- Ensure the display is correctly wired and initialized in code.
+- Video files should match the filenames expected in the sketch.
+- Keep video length short and resolution low for smooth playback.
+- SPIFFS has size limitations; use SD for longer videos.
+- You can customize the sketch to add more controls (serial, web, etc.).
 
 ---
 
 ## 🛠️ Credits
 
-Wiring reference:  
+Display wiring guide by Wouterlood:  
 https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-an-esp32-microcontroller/
 
 ---
 
-Feel free to fork, modify, and contribute!
+Feel free to fork, customize, and build upon this project!
