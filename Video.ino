@@ -1,179 +1,177 @@
-#include "PINS_ESP32-S3-LCD-ST7735_1_8.h"
-#include <Arduino.h>
+#include "PINS_ESP32-S3-LCD-ST7789_1_9.h"
+#include <Arduino_GFX_Library.h>
 #include <LittleFS.h>
 #include <JPEGDEC.h>
 #include "MjpegClass.h"
-#include "DFRobotDFPlayerMini.h"
 
-// --- MJPEG File Paths ---
-#define MJPEG_VIDEO_NORMAL   "/output_2.mjpeg"
-#define MJPEG_VIDEO_SHORT    "/output_short_3.mjpeg"
-#define MJPEG_VIDEO_SHORT_2  "/output_short_4.mjpeg"
-
-// --- Shared pin for video and audio trigger ---
-#define BUTTON_PIN 45
-
-// --- DFPlayer Mini setup ---
-HardwareSerial mySerial(1); // UART1 (TX=10, RX=9)
-DFRobotDFPlayerMini player;
-
-// --- Button state ---
-bool lastButtonState = HIGH;
-bool buttonPressed = false;
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
-
-// --- MJPEG player ---
+#define TOTAL_VIDEOS 9
+const char *homeVideo = "/home.mjpeg";
 MjpegClass mjpeg;
+uint8_t *mjpeg_buf;
 File mjpegFile;
-uint8_t* mjpeg_buf;
 bool videoPlaying = false;
 
-// --- List of videos ---
-const char* videoList[] = {
-  MJPEG_VIDEO_NORMAL,
-  MJPEG_VIDEO_SHORT,
-  MJPEG_VIDEO_SHORT_2
+const char *videoList[TOTAL_VIDEOS] = {
+  "/video_1.mjpeg", "/video_2.mjpeg", "/video_3.mjpeg",
+  "/video_4.mjpeg", "/video_5.mjpeg", "/video_6.mjpeg",
+  "/video_7.mjpeg", "/video_8.mjpeg", "/video_9.mjpeg"
+};
+const char *videoNames[TOTAL_VIDEOS] = {
+  "Video 1", "Video 2", "Video 3",
+  "Video 4", "Video 5", "Video 6",
+  "Video 7", "Video 8", "Video 9"
 };
 
-int currentVideoIndex = 0;
-int specialIndex = 1;  // Alternates between short video 1 and 2
+int currentVideoIndex = -1;
+const uint8_t buttonPins[TOTAL_VIDEOS] = {14,15,16,17,19,20,21,22,48};
+bool buttonStates[TOTAL_VIDEOS] = { HIGH };
 
-// --- MJPEG frame rate (25 FPS) ---
+const uint8_t MENU_BUTTON_PIN = 5;     // Tasto menu
+bool menuState = HIGH;
+bool menuActive = false;
+
 unsigned long lastFrameTime = 0;
-const unsigned long frameInterval = 1000 / 25;
+const unsigned long frameInterval = 1000 / 30;
 
-// --- JPEG draw callback ---
-int jpegDrawCallback(JPEGDRAW* pDraw) {
+void showSplash() {
+  gfx->fillScreen(BLACK);
+  gfx->setCursor(30, 60);
+  gfx->setTextColor(WHITE);
+  gfx->setTextSize(2);
+  gfx->println("Loading...");
+  delay(1000);
+}
+
+int jpegDrawCallback(JPEGDRAW *pDraw) {
   gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
   return 1;
 }
 
-// --- Start a video ---
-void startVideo(const char* filename) {
-  if (mjpegFile) mjpegFile.close();
+void drawMenu() {
+  gfx->fillScreen(BLACK);
+  gfx->setTextColor(WHITE);
+  gfx->setTextSize(1);
+  gfx->setCursor(10, 10);
+  gfx->println("Select Video:");
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    gfx->setCursor(10, 25 + i*12);
+    gfx->print(i+1);
+    gfx->print(": ");
+    gfx->println(videoNames[i]);
+  }
+  gfx->setCursor(10, 25 + TOTAL_VIDEOS*12);
+  gfx->println("Press menu again to close");
+}
 
+void startVideo(const char *filename) {
+  mjpegFile.close();
   mjpegFile = LittleFS.open(filename);
   if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
-    Serial.printf("⚠️ Error opening file: %s\n", filename);
+    Serial.printf("⚠️ Cannot open file: %s\n", filename);
     return;
   }
-
   mjpeg.setup(&mjpegFile, mjpeg_buf, jpegDrawCallback, true, 0, 0, gfx->width(), gfx->height());
   mjpeg.resetScale();
   videoPlaying = true;
   lastFrameTime = millis();
-  Serial.printf("▶️ Starting video: %s\n", filename);
+  Serial.printf("▶️ Playing: %s\n", filename);
 }
 
-// --- Stop the video ---
 void stopVideo() {
-  if (mjpegFile) mjpegFile.close();
+  mjpegFile.close();
   videoPlaying = false;
 }
 
-// --- Initialize the display ---
 void initDisplay() {
-  if (!gfx->begin()) {
-    Serial.println("❌ Display error");
-    while (1) delay(100);
-  }
+  if (!gfx->begin()) { Serial.println("❌ Display init failed"); while (1); }
   gfx->fillScreen(BLACK);
-  Serial.println("✅ Display ready");
 }
 
-// --- Initialize LittleFS filesystem ---
 void initFS() {
-  if (!LittleFS.begin()) {
-    Serial.println("❌ LittleFS initialization failed");
-    while (1) delay(100);
-  }
-  Serial.println("✅ LittleFS ready");
+  if (!LittleFS.begin()) { Serial.println("❌ FS init failed"); while (1); }
 }
 
-// --- Initialize DFPlayer Mini ---
-void initDFPlayer() {
-  mySerial.begin(9600, SERIAL_8N1, 9, 10); // RX=9, TX=10
-  if (player.begin(mySerial)) {
-    Serial.println("🎵 DFPlayer ready");
-    player.volume(25); // Volume from 0 to 30
-    // No track plays at startup
-  } else {
-    Serial.println("❌ DFPlayer not detected");
-    while (true); // Halt execution
-  }
-}
-
-// --- Setup function ---
 void setup() {
   Serial.begin(115200);
-  delay(300);  // Allow power stabilization
+  pinMode(GFX_BL, OUTPUT); digitalWrite(GFX_BL, HIGH);
 
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(MENU_BUTTON_PIN, INPUT_PULLUP);
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
 
   initDisplay();
+  showSplash();
   initFS();
-  initDFPlayer();
 
-  mjpeg_buf = (uint8_t*)heap_caps_malloc(40 * 1024, MALLOC_CAP_8BIT);
+  mjpeg_buf = (uint8_t*)heap_caps_malloc(40*1024, MALLOC_CAP_8BIT);
   if (!mjpeg_buf) {
-    Serial.println("❌ Failed to allocate MJPEG buffer");
-    while (1) delay(100);
+    Serial.println("❌ Buffer alloc failed");
+    gfx->fillScreen(BLACK);
+    gfx->setCursor(10,40);
+    gfx->setTextColor(RED);
+    gfx->setTextSize(2);
+    gfx->println("Error:");
+    gfx->println("MJPEG buffer");
+    while (1);
   }
 
-  startVideo(videoList[currentVideoIndex]);  // Start the default video WITHOUT audio
+  currentVideoIndex = -1;
+  startVideo(homeVideo);
 }
 
-// --- Main loop ---
 void loop() {
-  // --- Button handling with debounce ---
-  bool reading = digitalRead(BUTTON_PIN);
-
-  if (reading != lastButtonState) {
-    lastDebounceTime = millis();
+  bool menuPressed = digitalRead(MENU_BUTTON_PIN);
+  if (menuPressed == LOW && menuState == HIGH) {
+    menuActive = !menuActive;
+    if (menuActive) {
+      drawMenu();
+      videoPlaying = false;
+    } else {
+      // exit menu: resume home or last video
+      currentVideoIndex = -1;
+      startVideo(homeVideo);
+    }
   }
+  menuState = menuPressed;
 
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    if (reading == LOW && !buttonPressed) {
-      buttonPressed = true;
-
-      // Switch to short video
-      currentVideoIndex = specialIndex;
-      startVideo(videoList[currentVideoIndex]);
-      specialIndex = (specialIndex == 1) ? 2 : 1;
-
-      // Play audio ONLY if it's a short video
-      if (currentVideoIndex != 0) {
-        player.next();
-        Serial.println("🎶 Audio started with short video");
+  if (menuActive) {
+    for (int i = 0; i < TOTAL_VIDEOS; i++) {
+      bool st = digitalRead(buttonPins[i]);
+      if (st == LOW && buttonStates[i] == HIGH) {
+        currentVideoIndex = i;
+        menuActive = false;
+        startVideo(videoList[i]);
       }
+      buttonStates[i] = st;
     }
-
-    if (reading == HIGH) {
-      buttonPressed = false;
+  } else {
+    for (int i = 0; i < TOTAL_VIDEOS; i++) {
+      bool st = digitalRead(buttonPins[i]);
+      if (st == LOW && buttonStates[i] == HIGH) {
+        if (currentVideoIndex != i) {
+          currentVideoIndex = i;
+          startVideo(videoList[i]);
+        }
+      }
+      buttonStates[i] = st;
     }
   }
 
-  lastButtonState = reading;
-
-  // --- MJPEG playback ---
   if (videoPlaying) {
     unsigned long now = millis();
     if (now - lastFrameTime >= frameInterval) {
       if (mjpegFile.available() && mjpeg.readMjpegBuf()) {
         mjpeg.drawJpg();
         lastFrameTime = now;
-        delay(1);  // Friendly to watchdog
       } else {
         stopVideo();
-        if (currentVideoIndex != 0) {
-          // After short video, return to main video WITHOUT audio
-          currentVideoIndex = 0;
-          startVideo(videoList[currentVideoIndex]);
+        if (currentVideoIndex != -1) {
+          currentVideoIndex = -1;
+          startVideo(homeVideo);
         }
       }
     }
   }
-
-  delay(1);  // Watchdog-friendly idle
+  delay(1);
 }

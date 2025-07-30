@@ -138,28 +138,32 @@ public:
 
     return false;
   }
-void reset() {
-  if (_input) {
-    File* file = (File*)_input;
-    file->seek(0);  // Cast esplicito per usare seek()
+
+  // Reset the MJPEG stream reader
+  void reset() {
+    if (_input) {
+      File* file = (File*)_input;
+      file->seek(0);  // Explicit cast to use seek()
+    }
+    _inputindex = 0;
+    _mjpeg_buf_offset = 0;
+    _scale = -1;
+    _buf_read = 0;
   }
-  _inputindex = 0;
-  _mjpeg_buf_offset = 0;
-  _scale = -1;
-  _buf_read = 0;
-}
 
+  // Reset JPEG scale
   void resetScale() {
-  _scale = -1;
-}
+    _scale = -1;
+  }
 
+  // Decode and draw JPEG from MJPEG buffer
   bool drawJpg()
   {
     _remain = _mjpeg_buf_offset;
     _jpeg.openRAM(_mjpeg_buf, _remain, _pfnDraw);
     if (_scale == -1)
     {
-      // scale to fit height
+      // Scale to fit height
       int iMaxMCUs;
       int w = _jpeg.getWidth();
       int h = _jpeg.getHeight();

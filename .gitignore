@@ -1,0 +1,9 @@
+.idea/
+build/
+*.bin
+*.elf
+*.hex
+*.pyc
+__pycache__/
+.DS_Store
+.vscode/
