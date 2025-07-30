@@ -1,4 +1,4 @@
-#include "PINS_ESP32-S3-LCD-ST7789_1_9.h"
+#include "PINS_ESP32-S3-LCD-ST7735_1_8.h"
 #include <Arduino_GFX_Library.h>
 #include <LittleFS.h>
 #include <JPEGDEC.h>
@@ -23,7 +23,9 @@ const char *videoNames[TOTAL_VIDEOS] = {
 };
 
 int currentVideoIndex = -1;
-const uint8_t buttonPins[TOTAL_VIDEOS] = {14,15,16,17,19,20,21,22,48};
+const uint8_t buttonPins[TOTAL_VIDEOS] = {
+  46, 35, 16, 17, 19, 20, 21, 22, 48
+};
 bool buttonStates[TOTAL_VIDEOS] = { HIGH };
 
 const uint8_t MENU_BUTTON_PIN = 5;     // Tasto menu
