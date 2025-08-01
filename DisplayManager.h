@@ -108,6 +108,17 @@ public:
     _updateDrawMetrics(micros() - startTime);
   }
   
+  void print(uint32_t number) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->print(number);
+    _updateDrawMetrics(micros() - startTime);
+  }
+  
   void print(float number, int decimals = 2) {
     if (!_initialized) {
       _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
