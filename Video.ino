@@ -22,6 +22,7 @@ DFRobotDFPlayerMini player;
 #define BUTTON_TONE_DURATION 100
 #define MAX_RETRY_ATTEMPTS 3
 #define ERROR_RECOVERY_DELAY 5000
+#define LUNAR_TIME_DURATION 10000 // 10 seconds for lunar time display
 
 // Error codes for better debugging
 enum ErrorCode {
@@ -42,6 +43,7 @@ enum SystemState {
   STATE_HOME,
   STATE_MENU,
   STATE_PLAYING_VIDEO,
+  STATE_LUNAR_TIME,
   STATE_ERROR,
   STATE_RECOVERY
 };
@@ -73,6 +75,12 @@ const uint8_t BUTTON_PINS[TOTAL_VIDEOS] = {
   46, 35, 16, 17, 19, 20, 21, 47, 48
 };
 const uint8_t MENU_BUTTON_PIN = 5;
+
+// Lunar time variables
+int lunarHour = 0;
+int lunarMinute = 0;
+unsigned long lunarStartTime = 0;
+unsigned long lastLunarUpdate = 0;
 
 // Global system variables
 SystemState currentState = STATE_SPLASH;
@@ -126,10 +134,12 @@ void handleStateMachine();
 void handleSplashState();
 void handleMenuState();
 void handleVideoState();
+void handleLunarTimeState();
 void handleErrorState();
 void handleRecoveryState();
 void drawSplashScreen();
 void drawMenu();
+void drawLunarTime();
 void drawErrorScreen(ErrorCode error, const char* details = nullptr);
 void drawPerformanceInfo();
 bool startVideo(const char* filename, int videoIndex = -1);
@@ -144,6 +154,8 @@ bool attemptRecovery();
 const char* getErrorString(ErrorCode error);
 void updatePerformanceMetrics();
 void printSystemStatus();
+void startLunarTime();
+void updateLunarTime();
 
 void setup() {
   Serial.begin(115200);
@@ -258,6 +270,12 @@ void updateButtons() {
     if (isButtonPressed(videoButtons[i], BUTTON_PINS[i])) {
       Logger::debug(LOG_CAT_BUTTON, "Video button %d pressed", i + 1);
       playButtonTone();
+      
+      // Special lunar time feature for button 9 (last button)
+      if (i == 8) { // Button 9 (index 8)
+        Logger::info(LOG_CAT_SYSTEM, "Lunar time button pressed - activating special feature");
+        startLunarTime();
+      }
     }
   }
 }
@@ -303,6 +321,10 @@ void handleStateMachine() {
       
     case STATE_MENU:
       handleMenuState();
+      break;
+      
+    case STATE_LUNAR_TIME:
+      handleLunarTimeState();
       break;
       
     case STATE_ERROR:
@@ -395,6 +417,35 @@ void handleVideoState() {
   }
 }
 
+void handleLunarTimeState() {
+  // Check if lunar time display should end
+  if (millis() - lunarStartTime >= LUNAR_TIME_DURATION) {
+    Logger::info(LOG_CAT_SYSTEM, "Lunar time display finished, returning to previous state");
+    returnToHome();
+    return;
+  }
+  
+  // Update lunar time every minute
+  updateLunarTime();
+  
+  // Handle any button press to exit early
+  if (menuButton.wasPressed) {
+    menuButton.wasPressed = false;
+    Logger::info(LOG_CAT_SYSTEM, "Menu button pressed during lunar time, returning to home");
+    returnToHome();
+    return;
+  }
+  
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    if (videoButtons[i].wasPressed) {
+      videoButtons[i].wasPressed = false;
+      Logger::info(LOG_CAT_SYSTEM, "Video button pressed during lunar time, returning to home");
+      returnToHome();
+      return;
+    }
+  }
+}
+
 void handleErrorState() {
   // Check for recovery attempts
   if (millis() - errorStartTime > ERROR_RECOVERY_DELAY) {
@@ -454,13 +505,47 @@ void drawMenu() {
     display.println(videoDatabase[i].displayName);
   }
   
+  // Special feature hint
+  display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 5);
+  display.setTextColor(YELLOW);
+  display.println("Button 9 = Lunar Time");
+  
   // Instructions
-  display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 10);
+  display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 20);
   display.setTextColor(YELLOW);
   display.println("Menu = Exit");
   
   // Performance info
   drawPerformanceInfo();
+}
+
+void drawLunarTime() {
+  Logger::debug(LOG_CAT_DISPLAY, "Drawing lunar time display");
+  display.clear();
+  
+  // Create a deep blue color for lunar atmosphere
+  uint16_t lunarBlue = display._gfx->color565(100, 200, 255);
+  display.setTextColor(lunarBlue);
+  
+  // "LUNAR TIME" title
+  display.setTextSize(1);
+  display.drawCenteredText("LUNAR TIME", 30);
+  
+  // Large time display
+  display.setTextSize(2);
+  char timeStr[10];
+  sprintf(timeStr, "%02d %02d", lunarHour, lunarMinute);
+  display.drawCenteredText(timeStr, 80);
+  
+  // Subtitle
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.drawCenteredText("2001: A Space Odyssey", 120);
+  
+  // Status
+  display.setCursor(10, display.height() - 20);
+  display.setTextColor(CYAN);
+  display.print("Press any button to exit");
 }
 
 void drawErrorScreen(ErrorCode error, const char* details) {
@@ -574,6 +659,46 @@ void stopAudio() {
     audioPlaying = false;
     currentAudioTrack = 0;
     Logger::debug(LOG_CAT_AUDIO, "Audio stopped");
+  }
+}
+
+void startLunarTime() {
+  Logger::info(LOG_CAT_SYSTEM, "Starting lunar time display");
+  
+  // Stop current video if playing
+  stopVideo();
+  
+  // Initialize lunar time with random values
+  lunarHour = random(0, 24);
+  lunarMinute = random(0, 60);
+  lunarStartTime = millis();
+  lastLunarUpdate = millis();
+  
+  // Change state and draw
+  currentState = STATE_LUNAR_TIME;
+  drawLunarTime();
+  
+  Logger::info(LOG_CAT_SYSTEM, "Lunar time initialized: %02d:%02d", lunarHour, lunarMinute);
+}
+
+void updateLunarTime() {
+  unsigned long now = millis();
+  
+  // Update time every minute (60000ms)
+  if (now - lastLunarUpdate >= 60000) {
+    lastLunarUpdate = now;
+    
+    lunarMinute++;
+    if (lunarMinute >= 60) {
+      lunarMinute = 0;
+      lunarHour++;
+      if (lunarHour >= 24) {
+        lunarHour = 0;
+      }
+    }
+    
+    Logger::debug(LOG_CAT_SYSTEM, "Lunar time updated: %02d:%02d", lunarHour, lunarMinute);
+    drawLunarTime();
   }
 }
 
