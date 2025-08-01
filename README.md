@@ -45,9 +45,91 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 
 ## 🔌 ESP32-S3 Pinout (Pre-soldered Display + Audio + LED)
 
-### Simplified Wiring Diagram
+### Complete ESP32-S3 Pin Mapping
 
-![Wiring Diagram](images/wiring_diagram_simple.svg)
+| **Pin** | **GPIO** | **Funzione** | **Stato** | **Utilizzo** |
+|---------|----------|--------------|-----------|--------------|
+| **3V3** | - | Alimentazione 3.3V | Power | Display, DFPlayer |
+| **GND** | - | Massa | Ground | Tutti i componenti |
+| **EN** | - | Enable | System | Boot system |
+| **GPIO 0** | 0 | Boot Mode | Disponibile | - |
+| **GPIO 1** | 1 | U0TXD | Disponibile | - |
+| **GPIO 2** | 2 | Display DC/A0 | **Utilizzato** | Display Data/Command |
+| **GPIO 3** | 3 | U0RXD | Disponibile | - |
+| **GPIO 4** | 4 | Display RESET | **Utilizzato** | Display Reset |
+| **GPIO 5** | 5 | Menu Button | **Utilizzato** | Pulsante Menu |
+| **GPIO 6** | 6 | Flash SCK | Disponibile | - |
+| **GPIO 7** | 7 | Flash SDA | Disponibile | - |
+| **GPIO 8** | 8 | LED + Buzzer | **Utilizzato** | LED e Buzzer (condivisi) |
+| **GPIO 9** | 9 | DFPlayer RX | **Utilizzato** | Serial2 RX |
+| **GPIO 10** | 10 | DFPlayer TX | **Utilizzato** | Serial2 TX |
+| **GPIO 11** | 11 | Flash WP | Disponibile | - |
+| **GPIO 12** | 12 | Flash HD | Disponibile | - |
+| **GPIO 13** | 13 | Display SDA/MOSI | **Utilizzato** | SPI MOSI |
+| **GPIO 14** | 14 | Display SCK | **Utilizzato** | SPI SCK |
+| **GPIO 15** | 15 | Display CS | **Utilizzato** | SPI CS |
+| **GPIO 16** | 16 | Button 3 | **Utilizzato** | Pulsante Video 3 |
+| **GPIO 17** | 17 | Button 4 | **Utilizzato** | Pulsante Video 4 |
+| **GPIO 18** | 18 | - | Disponibile | - |
+| **GPIO 19** | 19 | Button 5 | **Utilizzato** | Pulsante Video 5 |
+| **GPIO 20** | 20 | Button 6 | **Utilizzato** | Pulsante Video 6 |
+| **GPIO 21** | 21 | Button 7 | **Utilizzato** | Pulsante Video 7 |
+| **GPIO 22** | 22 | - | Disponibile | - |
+| **GPIO 23** | 23 | - | Disponibile | - |
+| **GPIO 24** | 24 | - | Disponibile | - |
+| **GPIO 25** | 25 | - | Disponibile | - |
+| **GPIO 26** | 26 | - | Disponibile | - |
+| **GPIO 27** | 27 | - | Disponibile | - |
+| **GPIO 28** | 28 | - | Disponibile | - |
+| **GPIO 29** | 29 | - | Disponibile | - |
+| **GPIO 30** | 30 | - | Disponibile | - |
+| **GPIO 31** | 31 | - | Disponibile | - |
+| **GPIO 32** | 32 | - | Disponibile | - |
+| **GPIO 33** | 33 | - | Disponibile | - |
+| **GPIO 34** | 34 | - | Disponibile | - |
+| **GPIO 35** | 35 | Button 2 | **Utilizzato** | Pulsante Video 2 |
+| **GPIO 36** | 36 | - | Disponibile | - |
+| **GPIO 37** | 37 | - | Disponibile | - |
+| **GPIO 38** | 38 | - | Disponibile | - |
+| **GPIO 39** | 39 | - | Disponibile | - |
+| **GPIO 40** | 40 | - | Disponibile | - |
+| **GPIO 41** | 41 | - | Disponibile | - |
+| **GPIO 42** | 42 | - | Disponibile | - |
+| **GPIO 43** | 43 | - | Disponibile | - |
+| **GPIO 44** | 44 | - | Disponibile | - |
+| **GPIO 45** | 45 | - | Disponibile | - |
+| **GPIO 46** | 46 | Button 1 | **Utilizzato** | Pulsante Video 1 |
+| **GPIO 47** | 47 | Button 8 | **Utilizzato** | Pulsante Video 8 |
+| **GPIO 48** | 48 | Button 9 | **Utilizzato** | Pulsante Video 9 + Commlock |
+
+### Pin Summary:
+- **🟢 Utilizzati**: 18 pin (40%)
+- **🟡 Disponibili**: 27 pin (60%)
+- **🔴 Riservati**: 0 pin
+
+### 🎯 Suggerimenti per Pin Disponibili
+
+#### **Pin Consigliati per Espansioni:**
+
+**Comunicazione:**
+- **GPIO 0, 1, 3** - Comunicazione seriale aggiuntiva
+- **GPIO 6, 7, 11, 12** - Interfacce SPI/I2C aggiuntive
+
+**Controlli Analogici:**
+- **GPIO 18, 19** - PWM per controlli analogici
+- **GPIO 22-45** - Input/output generici
+
+**Sensori e Attuatori:**
+- **GPIO 22-45** - Sensori di temperatura, movimento, luce
+- **GPIO 18, 19** - Servomotori, controlli di velocità
+
+**Espansioni Future:**
+- **Pulsanti Extra** - Qualsiasi GPIO libero
+- **LED di Stato** - Qualsiasi GPIO libero
+- **Comunicazione Wireless** - GPIO 0, 1, 3
+- **Interfacce Aggiuntive** - GPIO 6, 7, 11, 12
+
+### Simplified Wiring Diagram
 
 *Simplified wiring diagram for quick reference*
 
