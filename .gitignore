@@ -1,9 +1,23 @@
+# IDE and build files
 .idea/
 build/
-*.bin
-*.elf
-*.hex
+.vscode/
+
+# Python cache
 *.pyc
 __pycache__/
+
+# macOS
 .DS_Store
-.vscode/
+
+# Arduino build artifacts (handled by Git LFS)
+# *.bin
+# *.elf
+# *.hex
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
