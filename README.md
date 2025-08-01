@@ -261,6 +261,71 @@ The system supports up to 9 buttons for video selection:
 - **15-second duration** (configurable)
 - **Professional Space Interface** with authentic colors
 
+### 🎬 About Commlock - "1999: A Space Odyssey" Reference
+
+#### **What is Commlock?**
+
+**Commlock** is a fictional computer interface system featured in Stanley Kubrick's iconic 1968 film "2001: A Space Odyssey" (often referred to as "1999" in the context of the film's timeline). In the movie, Commlock serves as the primary computer interface aboard the Discovery One spacecraft, used by astronauts to communicate with the ship's AI system, HAL 9000.
+
+#### **Film Context:**
+- **Movie**: "2001: A Space Odyssey" (1968)
+- **Director**: Stanley Kubrick
+- **Setting**: Discovery One spacecraft en route to Jupiter
+- **Time Period**: 1999-2001 (in the film's timeline)
+- **Purpose**: Computer interface for spacecraft operations
+
+#### **Commlock Features in the Film:**
+- **Lunar Time Display**: Shows time in a lunar/space format
+- **Deep Blue Interface**: Authentic space-age computer aesthetic
+- **Audio Feedback**: Beeps and tones for user interaction
+- **Professional Styling**: Clean, futuristic computer interface
+- **Space Mission Context**: Used for spacecraft navigation and communication
+
+#### **Our Implementation:**
+This project recreates the authentic Commlock experience with:
+
+- **🎵 Authentic Audio**: Startup beeps, tick sounds, and confirmation tones
+- **🌙 Lunar Time**: Real-time display with lunar day progress calculation
+- **🎨 Visual Effects**: CRT scan lines and glow effects for authentic feel
+- **🚀 Space Interface**: Professional styling inspired by the film
+- **⚡ Interactive**: Button 9 activates the full Commlock experience
+
+### 🔧 How Commlock Works
+
+#### **Activation:**
+- **Trigger**: Press Button 9 (GPIO 48)
+- **Duration**: 15 seconds (configurable)
+- **Exit**: Any button press or automatic timeout
+
+#### **Audio System:**
+```cpp
+// Authentic Commlock sounds
+#define COMMLOCK_BEEP_FREQ 1200      // Startup beep
+#define COMMLOCK_TICK_FREQ 800       // Second tick
+#define COMMLOCK_CONFIRM_FREQ 1500   // Button confirmation
+```
+
+#### **Visual Effects:**
+- **CRT Scan Lines**: Subtle blue scan lines every 100ms
+- **Glow Effects**: Blue glow around display edges
+- **Color Scheme**: Authentic space-age blue and green
+- **Typography**: Professional computer interface styling
+
+#### **Lunar Time Calculation:**
+```cpp
+// Real-time lunar time with seconds
+commlockHour = random(0, 24);    // Random start time
+commlockMinute = random(0, 60);
+commlockSecond = 0;              // Real-time seconds
+lunarDayProgress = 0.0f;         // Lunar day percentage
+```
+
+#### **Technical Implementation:**
+- **State Management**: Dedicated `STATE_COMMLOCK` state
+- **Time Updates**: Real-time seconds with lunar day progress
+- **Audio Integration**: Synchronized with visual effects
+- **Performance**: Optimized for smooth 30 FPS display
+
 ### Commlock Level 1 Features:
 - ✅ **Authentic Audio System**
   - Startup beep (1200Hz, 200ms)
