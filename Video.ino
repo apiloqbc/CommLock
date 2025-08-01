@@ -8,8 +8,7 @@
 DisplayManager display;
 
 // ===== DFPLAYER MINI SETUP =====
-#include <SoftwareSerial.h>
-SoftwareSerial mySerial(9, 10); // RX=9, TX=10
+// Use HardwareSerial (Serial2) for ESP32-S3 instead of SoftwareSerial
 DFRobotDFPlayerMini player;
 
 // Configuration
@@ -194,9 +193,11 @@ void initializeSystem() {
 
 void initializeDFPlayer() {
   Logger::info(LOG_CAT_AUDIO, "Initializing DFPlayer...");
-  mySerial.begin(9600, SERIAL_8N1, 9, 10); // RX=9, TX=10
   
-  if (player.begin(mySerial)) {
+  // Initialize Serial2 for ESP32-S3 (pins 9 and 10)
+  Serial2.begin(9600, SERIAL_8N1, 9, 10); // RX=9, TX=10
+  
+  if (player.begin(Serial2)) {
     Logger::info(LOG_CAT_AUDIO, "DFPlayer ready");
     player.volume(25); // Volume from 0 to 30
   } else {
@@ -600,7 +601,7 @@ bool attemptRecovery() {
       return allocateBuffer();
       
     case ERROR_DFPLAYER_INIT_FAILED:
-      return player.begin(mySerial);
+      return player.begin(Serial2);
       
     case ERROR_VIDEO_FILE_NOT_FOUND:
     case ERROR_VIDEO_FILE_CORRUPTED:
