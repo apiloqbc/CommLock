@@ -1,179 +1,379 @@
-#include "PINS_ESP32-S3-LCD-ST7735_1_8.h"
-#include <Arduino_GFX_Library.h>
+#include "DisplayManager.h"
 #include <LittleFS.h>
-#include <JPEGDEC.h>
 #include "MjpegClass.h"
 
+// ===== GLOBAL DISPLAY MANAGER =====
+DisplayManager display;
+
+// Configuration
 #define TOTAL_VIDEOS 9
-const char *homeVideo = "/home.mjpeg";
+#define MJPEG_BUFFER_SIZE (40 * 1024)
+#define TARGET_FPS 30
+#define FRAME_INTERVAL (1000 / TARGET_FPS)
+#define DEBOUNCE_DELAY 50
+#define SPLASH_DURATION 2000
+
+// System states
+enum SystemState {
+  STATE_SPLASH,
+  STATE_HOME,
+  STATE_MENU,
+  STATE_PLAYING_VIDEO,
+  STATE_ERROR
+};
+
+// Structure to manage videos
+struct VideoInfo {
+  const char* filename;
+  const char* displayName;
+};
+
+// Video list
+const VideoInfo videoDatabase[TOTAL_VIDEOS] = {
+  {"/video_1.mjpeg", "Video 1"},
+  {"/video_2.mjpeg", "Video 2"},
+  {"/video_3.mjpeg", "Video 3"},
+  {"/video_4.mjpeg", "Video 4"},
+  {"/video_5.mjpeg", "Video 5"},
+  {"/video_6.mjpeg", "Video 6"},
+  {"/video_7.mjpeg", "Video 7"},
+  {"/video_8.mjpeg", "Video 8"},
+  {"/video_9.mjpeg", "Video 9"}
+};
+
+const char* HOME_VIDEO = "/home.mjpeg";
+
+// Pin configuration
+const uint8_t BUTTON_PINS[TOTAL_VIDEOS] = {
+  46, 35, 16, 17, 19, 20, 21, 47, 48
+};
+const uint8_t MENU_BUTTON_PIN = 5;
+
+// Global system variables
+SystemState currentState = STATE_SPLASH;
 MjpegClass mjpeg;
-uint8_t *mjpeg_buf;
 File mjpegFile;
-bool videoPlaying = false;
+uint8_t* mjpegBuffer = nullptr;
 
-const char *videoList[TOTAL_VIDEOS] = {
-  "/video_1.mjpeg", "/video_2.mjpeg", "/video_3.mjpeg",
-  "/video_4.mjpeg", "/video_5.mjpeg", "/video_6.mjpeg",
-  "/video_7.mjpeg", "/video_8.mjpeg", "/video_9.mjpeg"
-};
-const char *videoNames[TOTAL_VIDEOS] = {
-  "Video 1", "Video 2", "Video 3",
-  "Video 4", "Video 5", "Video 6",
-  "Video 7", "Video 8", "Video 9"
-};
-
+// Video state
 int currentVideoIndex = -1;
-const uint8_t buttonPins[TOTAL_VIDEOS] = {
-  46, 35, 16, 17, 19, 20, 21, 22, 48
-};
-bool buttonStates[TOTAL_VIDEOS] = { HIGH };
-
-const uint8_t MENU_BUTTON_PIN = 5;     // Tasto menu
-bool menuState = HIGH;
-bool menuActive = false;
-
+bool videoPlaying = false;
 unsigned long lastFrameTime = 0;
-const unsigned long frameInterval = 1000 / 30;
+unsigned long splashStartTime = 0;
 
-void showSplash() {
-  gfx->fillScreen(BLACK);
-  gfx->setCursor(30, 60);
-  gfx->setTextColor(WHITE);
-  gfx->setTextSize(2);
-  gfx->println("Loading...");
-  delay(1000);
-}
+// Button management with debounce
+struct ButtonState {
+  bool currentState;
+  bool lastState;
+  unsigned long lastDebounceTime;
+  bool wasPressed;
+};
 
-int jpegDrawCallback(JPEGDRAW *pDraw) {
-  gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
-  return 1;
-}
+ButtonState videoButtons[TOTAL_VIDEOS];
+ButtonState menuButton;
 
-void drawMenu() {
-  gfx->fillScreen(BLACK);
-  gfx->setTextColor(WHITE);
-  gfx->setTextSize(1);
-  gfx->setCursor(10, 10);
-  gfx->println("Select Video:");
-  for (int i = 0; i < TOTAL_VIDEOS; i++) {
-    gfx->setCursor(10, 25 + i*12);
-    gfx->print(i+1);
-    gfx->print(": ");
-    gfx->println(videoNames[i]);
-  }
-  gfx->setCursor(10, 25 + TOTAL_VIDEOS*12);
-  gfx->println("Press menu again to close");
-}
-
-void startVideo(const char *filename) {
-  mjpegFile.close();
-  mjpegFile = LittleFS.open(filename);
-  if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
-    Serial.printf("⚠️ Cannot open file: %s\n", filename);
-    return;
-  }
-  mjpeg.setup(&mjpegFile, mjpeg_buf, jpegDrawCallback, true, 0, 0, gfx->width(), gfx->height());
-  mjpeg.resetScale();
-  videoPlaying = true;
-  lastFrameTime = millis();
-  Serial.printf("▶️ Playing: %s\n", filename);
-}
-
-void stopVideo() {
-  mjpegFile.close();
-  videoPlaying = false;
-}
-
-void initDisplay() {
-  if (!gfx->begin()) { Serial.println("❌ Display init failed"); while (1); }
-  gfx->fillScreen(BLACK);
-}
-
-void initFS() {
-  if (!LittleFS.begin()) { Serial.println("❌ FS init failed"); while (1); }
-}
+// Function prototypes
+void initializeSystem();
+void initializeFileSystem();
+bool allocateBuffer();
+void initializeButtons();
+void updateButtons();
+bool isButtonPressed(ButtonState& button, uint8_t pin);
+void handleStateMachine();
+void handleSplashState();
+void handleMenuState();
+void handleVideoState();
+void drawSplashScreen();
+void drawMenu();
+void drawErrorScreen(const char* error);
+bool startVideo(const char* filename, int videoIndex = -1);
+void stopVideo();
+void returnToHome();
+int jpegDrawCallback(JPEGDRAW* pDraw);
 
 void setup() {
   Serial.begin(115200);
-  pinMode(GFX_BL, OUTPUT); digitalWrite(GFX_BL, HIGH);
-
-  pinMode(MENU_BUTTON_PIN, INPUT_PULLUP);
-  for (int i = 0; i < TOTAL_VIDEOS; i++) {
-    pinMode(buttonPins[i], INPUT_PULLUP);
-  }
-
-  initDisplay();
-  showSplash();
-  initFS();
-
-  mjpeg_buf = (uint8_t*)heap_caps_malloc(40*1024, MALLOC_CAP_8BIT);
-  if (!mjpeg_buf) {
-    Serial.println("❌ Buffer alloc failed");
-    gfx->fillScreen(BLACK);
-    gfx->setCursor(10,40);
-    gfx->setTextColor(RED);
-    gfx->setTextSize(2);
-    gfx->println("Error:");
-    gfx->println("MJPEG buffer");
-    while (1);
-  }
-
-  currentVideoIndex = -1;
-  startVideo(homeVideo);
+  Serial.println("🚀 Starting MJPEG Player...");
+  
+  initializeSystem();
+  splashStartTime = millis();
 }
 
 void loop() {
-  bool menuPressed = digitalRead(MENU_BUTTON_PIN);
-  if (menuPressed == LOW && menuState == HIGH) {
-    menuActive = !menuActive;
-    if (menuActive) {
-      drawMenu();
-      videoPlaying = false;
-    } else {
-      // exit menu: resume home or last video
-      currentVideoIndex = -1;
-      startVideo(homeVideo);
+  updateButtons();
+  handleStateMachine();
+  delay(1);
+}
+
+void initializeSystem() {
+  // Initialize display first
+  if (!display.begin()) {
+    Serial.println("❌ Display initialization failed");
+    while (1) delay(100);
+  }
+  
+  initializeButtons();
+  drawSplashScreen();
+  initializeFileSystem();
+  
+  if (!allocateBuffer()) {
+    currentState = STATE_ERROR;
+    drawErrorScreen("Memory allocation failed");
+    return;
+  }
+  
+  Serial.println("✅ System initialized successfully");
+}
+
+void initializeFileSystem() {
+  if (!LittleFS.begin()) {
+    Serial.println("❌ FileSystem initialization failed");
+    currentState = STATE_ERROR;
+    drawErrorScreen("FileSystem init failed");
+    return;
+  }
+  Serial.println("✅ FileSystem initialized");
+}
+
+bool allocateBuffer() {
+  mjpegBuffer = (uint8_t*)heap_caps_malloc(MJPEG_BUFFER_SIZE, MALLOC_CAP_8BIT);
+  if (!mjpegBuffer) {
+    Serial.println("❌ MJPEG buffer allocation failed");
+    return false;
+  }
+  Serial.printf("✅ Allocated %d bytes for MJPEG buffer\n", MJPEG_BUFFER_SIZE);
+  return true;
+}
+
+void initializeButtons() {
+  pinMode(MENU_BUTTON_PIN, INPUT_PULLUP);
+  menuButton = {HIGH, HIGH, 0, false};
+  
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    pinMode(BUTTON_PINS[i], INPUT_PULLUP);
+    videoButtons[i] = {HIGH, HIGH, 0, false};
+  }
+  Serial.println("✅ Buttons initialized");
+}
+
+void updateButtons() {
+  // Update menu button
+  isButtonPressed(menuButton, MENU_BUTTON_PIN);
+  
+  // Update video buttons
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    isButtonPressed(videoButtons[i], BUTTON_PINS[i]);
+  }
+}
+
+bool isButtonPressed(ButtonState& button, uint8_t pin) {
+  bool reading = digitalRead(pin);
+  bool pressed = false;
+  
+  if (reading != button.lastState) {
+    button.lastDebounceTime = millis();
+  }
+  
+  if ((millis() - button.lastDebounceTime) > DEBOUNCE_DELAY) {
+    if (reading != button.currentState) {
+      button.currentState = reading;
+      if (button.currentState == LOW) {
+        pressed = true;
+        button.wasPressed = true;
+      }
     }
   }
-  menuState = menuPressed;
+  
+  button.lastState = reading;
+  return pressed;
+}
 
-  if (menuActive) {
-    for (int i = 0; i < TOTAL_VIDEOS; i++) {
-      bool st = digitalRead(buttonPins[i]);
-      if (st == LOW && buttonStates[i] == HIGH) {
-        currentVideoIndex = i;
-        menuActive = false;
-        startVideo(videoList[i]);
-      }
-      buttonStates[i] = st;
+void handleStateMachine() {
+  switch (currentState) {
+    case STATE_SPLASH:
+      handleSplashState();
+      break;
+      
+    case STATE_HOME:
+    case STATE_PLAYING_VIDEO:
+      handleVideoState();
+      break;
+      
+    case STATE_MENU:
+      handleMenuState();
+      break;
+      
+    case STATE_ERROR:
+      // Stay in error state
+      break;
+  }
+}
+
+void handleSplashState() {
+  if (millis() - splashStartTime >= SPLASH_DURATION) {
+    currentState = STATE_HOME;
+    if (!startVideo(HOME_VIDEO)) {
+      currentState = STATE_ERROR;
+      drawErrorScreen("Cannot load home video");
     }
-  } else {
-    for (int i = 0; i < TOTAL_VIDEOS; i++) {
-      bool st = digitalRead(buttonPins[i]);
-      if (st == LOW && buttonStates[i] == HIGH) {
-        if (currentVideoIndex != i) {
-          currentVideoIndex = i;
-          startVideo(videoList[i]);
+  }
+}
+
+void handleMenuState() {
+  // Handle menu button to exit
+  if (menuButton.wasPressed) {
+    menuButton.wasPressed = false;
+    currentState = STATE_HOME;
+    returnToHome();
+    return;
+  }
+  
+  // Handle video selection
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    if (videoButtons[i].wasPressed) {
+      videoButtons[i].wasPressed = false;
+      currentState = STATE_PLAYING_VIDEO;
+      if (!startVideo(videoDatabase[i].filename, i)) {
+        Serial.printf("❌ Failed to start video %d\n", i + 1);
+        currentState = STATE_HOME;
+        returnToHome();
+      }
+      return;
+    }
+  }
+}
+
+void handleVideoState() {
+  // Handle menu button
+  if (menuButton.wasPressed) {
+    menuButton.wasPressed = false;
+    stopVideo();
+    currentState = STATE_MENU;
+    drawMenu();
+    return;
+  }
+  
+  // Handle direct video selection (only if not in menu)
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    if (videoButtons[i].wasPressed) {
+      videoButtons[i].wasPressed = false;
+      if (currentVideoIndex != i) {
+        currentState = STATE_PLAYING_VIDEO;
+        if (!startVideo(videoDatabase[i].filename, i)) {
+          Serial.printf("❌ Failed to start video %d\n", i + 1);
+          returnToHome();
         }
       }
-      buttonStates[i] = st;
+      return;
     }
   }
-
+  
+  // Handle video playback
   if (videoPlaying) {
     unsigned long now = millis();
-    if (now - lastFrameTime >= frameInterval) {
+    if (now - lastFrameTime >= FRAME_INTERVAL) {
       if (mjpegFile.available() && mjpeg.readMjpegBuf()) {
         mjpeg.drawJpg();
         lastFrameTime = now;
       } else {
-        stopVideo();
-        if (currentVideoIndex != -1) {
-          currentVideoIndex = -1;
-          startVideo(homeVideo);
-        }
+        // Video finished, return to home video
+        Serial.println("📺 Video finished, returning to home");
+        returnToHome();
       }
     }
   }
-  delay(1);
+}
+
+void drawSplashScreen() {
+  display.clear();
+  display.setTextColor(WHITE);
+  
+  // Main title
+  display.drawCenteredText("MJPEG", display.height() / 2 - 20, 2);
+  display.drawCenteredText("Player", display.height() / 2, 2);
+  
+  // Loading
+  display.drawCenteredText("Loading...", display.height() / 2 + 30, 1);
+}
+
+void drawMenu() {
+  display.clear();
+  display.setTextColor(CYAN);
+  display.setCursor(10, 5);
+  display.println("=== VIDEO MENU ===");
+  
+  // Video list
+  display.setTextColor(WHITE);
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    display.setCursor(10, 20 + i * 12);
+    display.print("[");
+    display.print(i + 1);
+    display.print("] ");
+    display.println(videoDatabase[i].displayName);
+  }
+  
+  // Instructions
+  display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 10);
+  display.setTextColor(YELLOW);
+  display.println("Menu = Exit");
+}
+
+void drawErrorScreen(const char* error) {
+  display.clear();
+  display.setTextColor(RED);
+  display.setCursor(10, 40);
+  display.println("ERROR:");
+  
+  display.setTextSize(1);
+  display.setCursor(10, 70);
+  display.setTextColor(WHITE);
+  display.println(error);
+  
+  Serial.printf("❌ Error: %s\n", error);
+}
+
+bool startVideo(const char* filename, int videoIndex) {
+  stopVideo(); // Make sure previous video is stopped
+  
+  mjpegFile = LittleFS.open(filename);
+  if (!mjpegFile || mjpegFile.isDirectory() || mjpegFile.size() < 1024) {
+    Serial.printf("⚠️ Cannot open file: %s\n", filename);
+    return false;
+  }
+  
+  mjpeg.setup(&mjpegFile, mjpegBuffer, jpegDrawCallback, true, 0, 0, display.width(), display.height());
+  mjpeg.resetScale();
+  
+  currentVideoIndex = videoIndex;
+  videoPlaying = true;
+  lastFrameTime = millis();
+  
+  Serial.printf("▶️ Playing: %s", filename);
+  if (videoIndex >= 0) {
+    Serial.printf(" (%s)", videoDatabase[videoIndex].displayName);
+  }
+  Serial.println();
+  
+  return true;
+}
+
+void stopVideo() {
+  if (mjpegFile) {
+    mjpegFile.close();
+  }
+  videoPlaying = false;
+}
+
+void returnToHome() {
+  currentVideoIndex = -1;
+  currentState = STATE_HOME;
+  if (!startVideo(HOME_VIDEO)) {
+    currentState = STATE_ERROR;
+    drawErrorScreen("Cannot load home video");
+  }
+}
+
+int jpegDrawCallback(JPEGDRAW* pDraw) {
+  display.drawJpegFrame(pDraw);
+  return 1;
 }
