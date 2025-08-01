@@ -2,6 +2,12 @@
 
 An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and working 1.8" TFT display and synchronized MP3 audio. Ideal for creating interactive installations, informational displays, or presentation systems.
 
+## 📋 System Overview
+
+![Complete System](images/wiring_diagram.svg)
+
+*Complete wiring diagram showing all components and connections*
+
 ## ✨ Features
 
 - **MJPEG Video Playback** on 1.8" TFT display (128x160 pixels)
@@ -15,6 +21,10 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 
 ## 🧰 Required Hardware
 
+### Main Components
+
+![ESP32-S3 Board](images/board.jpg)
+
 - **ESP32-S3** (tested with ESP32-S3-DevKitC-1)
 - **1.8" TFT ST7735 Display** (pre-soldered and working)
 - **DFPlayer Mini MP3 Module** (TF-16P)
@@ -23,9 +33,23 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 - **Power Supply** USB or regulated 3.3V
 - **MicroSD Card** (for MP3 files)
 
+### Pin Layout Reference
+
+![ESP32-S3 Pinout](images/pins.jpg)
+
+*ESP32-S3 pin layout for reference*
+
 ## 🔌 ESP32-S3 Pinout (Pre-soldered Display + Audio)
 
-### Display Connections
+### Simplified Wiring Diagram
+
+![Wiring Diagram](images/wiring_diagram_simple.svg)
+
+*Simplified wiring diagram for quick reference*
+
+### Detailed Connections
+
+#### Display Connections
 | Display Pin | ESP32 Pin | Function |
 |-------------|-----------|----------|
 | VCC         | 3.3V      | Power |
@@ -37,7 +61,7 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 | SCK         | GPIO 14   | SPI Clock |
 | LED (BL)    | 3.3V      | Backlight |
 
-### DFPlayer Mini Connections
+#### DFPlayer Mini Connections
 | DFPlayer Pin | ESP32 Pin | Function |
 |--------------|-----------|----------|
 | VCC          | 3.3V      | Power |
@@ -47,7 +71,7 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 | SPK_1        | Speaker + | Audio Output |
 | SPK_2        | Speaker - | Audio Output |
 
-### Buzzer Connection
+#### Buzzer Connection
 | Buzzer Pin | ESP32 Pin | Function |
 |------------|-----------|----------|
 | +          | GPIO 8    | Tone Output |
@@ -131,7 +155,9 @@ Video/
 │   └── ...                     # Other videos
 └── images/                     # Documentation images
     ├── board.jpg
-    └── pins.jpg
+    ├── pins.jpg
+    ├── wiring_diagram.svg      # Complete wiring diagram
+    └── wiring_diagram_simple.svg  # Simplified wiring diagram
 
 MicroSD Card (DFPlayer Mini):
 ├── 0001.mp3                   # Audio for Video 1
@@ -167,14 +193,40 @@ MicroSD Card (DFPlayer Mini):
 3. Verify all libraries are installed
 4. Compile and upload the sketch
 
-### 4. Operation
+### 4. System Operation
 
+The system provides a complete multimedia experience:
+
+- **🎬 Video Playback:** High-quality MJPEG videos on 1.8" TFT display
+- **🎵 Audio Synchronization:** MP3 audio perfectly synchronized with video
+- **🎮 Interactive Control:** 9 buttons for video selection + menu button
+- **🔊 Audio Feedback:** Button tone feedback for user interaction
+- **📱 State Management:** Smooth transitions between splash, home, menu, and video states
+
+#### Operation Flow:
 - **Startup:** Shows splash screen for 2 seconds
 - **Home:** Automatically plays `home.mjpeg` (no audio)
 - **Menu:** Press Menu button (GPIO 5) to access menu
 - **Video Selection:** Press buttons 1-9 to play corresponding videos with audio
 - **Button Feedback:** Each button press produces a tone
 - **Exit:** Press Menu during playback to return to menu
+
+## 🎯 System in Action
+
+The complete system provides a professional multimedia experience with:
+
+- **📺 Visual Display:** Crisp 128x160 TFT screen with vibrant colors
+- **🎵 Audio Output:** High-quality stereo audio via DFPlayer Mini
+- **🎮 User Interface:** Intuitive button control with tactile feedback
+- **⚡ Performance:** Smooth 30 FPS video playback with synchronized audio
+- **🔧 Reliability:** Robust error handling and state management
+
+### Key Features Demonstrated:
+
+1. **Synchronized Multimedia:** Video and audio start/stop together
+2. **Interactive Feedback:** Button presses trigger immediate tone response
+3. **Professional UI:** Clean menu system with centered text and colors
+4. **Modular Design:** Easy to customize and extend functionality
 
 ## 🔧 DisplayManager Class
 
@@ -324,6 +376,22 @@ player.volume(25);                  // Audio volume (0-30)
 - **Buttons:** 9 + Menu
 - **Audio Output:** Stereo via DFPlayer Mini
 - **Button Feedback:** Tone via buzzer
+
+## 🏆 Project Showcase
+
+This project demonstrates advanced ESP32-S3 capabilities:
+
+- **🎬 Multimedia Integration:** Seamless video and audio synchronization
+- **🎮 Interactive Design:** Professional user interface with tactile feedback
+- **🔧 Modular Architecture:** Clean, maintainable code with DisplayManager class
+- **📚 Comprehensive Documentation:** Complete wiring diagrams and setup guides
+- **⚡ Performance Optimized:** Efficient memory usage and smooth playback
+
+### Perfect For:
+- **Interactive Installations:** Museums, exhibitions, public spaces
+- **Educational Projects:** Learning ESP32, multimedia, and embedded systems
+- **Prototyping:** Rapid development of multimedia interfaces
+- **Custom Applications:** Easy to modify for specific use cases
 
 ## 🤝 Contributions
 
