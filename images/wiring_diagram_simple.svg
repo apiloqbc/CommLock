@@ -24,263 +24,123 @@
   <rect width="1000" height="700" fill="#f8f8f8"/>
 
   <!-- Title -->
-  <text x="500" y="25" text-anchor="middle" class="title">ESP32-S3 Video Player - Symbolic Wiring Diagram</text>
+  <text x="500" y="25" text-anchor="middle" class="title">ESP32-S3 Video Player - Logical System Diagram</text>
 
   <!-- ESP32-S3 Board -->
-  <rect x="30" y="50" width="180" height="250" class="component" rx="8"/>
+  <rect x="30" y="50" width="180" height="120" class="component" rx="8"/>
   <text x="120" y="70" text-anchor="middle" class="title">ESP32-S3</text>
-  
-  <!-- ESP32 Key Pins -->
-  <rect x="40" y="85" width="12" height="6" class="pin power"/>
-  <text x="60" y="91" class="text">3.3V</text>
-  
-  <rect x="40" y="95" width="12" height="6" class="pin ground"/>
-  <text x="60" y="101" class="text">GND</text>
-  
-  <rect x="40" y="105" width="12" height="6" class="pin data"/>
-  <text x="60" y="111" class="text">GPIO 2 (DC)</text>
-  
-  <rect x="40" y="115" width="12" height="6" class="pin data"/>
-  <text x="60" y="121" class="text">GPIO 4 (RESET)</text>
-  
-  <rect x="40" y="125" width="12" height="6" class="pin data"/>
-  <text x="60" y="131" class="text">GPIO 5 (CS + Menu)</text>
-  
-  <rect x="40" y="135" width="12" height="6" class="pin data"/>
-  <text x="60" y="141" class="text">GPIO 8 (BUZZER)</text>
-  
-  <rect x="40" y="145" width="12" height="6" class="pin data"/>
-  <text x="60" y="151" class="text">GPIO 9 (DFPlayer RX)</text>
-  
-  <rect x="40" y="155" width="12" height="6" class="pin data"/>
-  <text x="60" y="161" class="text">GPIO 10 (DFPlayer TX)</text>
-  
-  <rect x="40" y="165" width="12" height="6" class="pin data"/>
-  <text x="60" y="171" class="text">GPIO 11 (MOSI)</text>
-  
-  <rect x="40" y="175" width="12" height="6" class="pin data"/>
-  <text x="60" y="181" class="text">GPIO 12 (SCK)</text>
-  
-  <rect x="40" y="185" width="12" height="6" class="pin data"/>
-  <text x="60" y="191" class="text">GPIO 13 (SDA)</text>
-  
-  <rect x="40" y="195" width="12" height="6" class="pin data"/>
-  <text x="60" y="201" class="text">GPIO 14 (SCK)</text>
-  
-  <rect x="40" y="205" width="12" height="6" class="pin data"/>
-  <text x="60" y="211" class="text">GPIO 15 (CS)</text>
-  
-  <rect x="40" y="215" width="12" height="6" class="pin data"/>
-  <text x="60" y="221" class="text">GPIO 16 (DC + Button 3)</text>
-  
-  <rect x="40" y="225" width="12" height="6" class="pin data"/>
-  <text x="60" y="231" class="text">GPIO 17 (Button 4)</text>
-  
-  <rect x="40" y="235" width="12" height="6" class="pin data"/>
-  <text x="60" y="241" class="text">GPIO 19 (Button 5)</text>
-  
-  <rect x="40" y="245" width="12" height="6" class="pin data"/>
-  <text x="60" y="251" class="text">GPIO 20 (Button 6)</text>
-  
-  <rect x="40" y="255" width="12" height="6" class="pin data"/>
-  <text x="60" y="261" class="text">GPIO 21 (Button 7)</text>
-  
-  <rect x="40" y="265" width="12" height="6" class="pin data"/>
-  <text x="60" y="271" class="text">GPIO 35 (Button 2)</text>
-  
-  <rect x="40" y="275" width="12" height="6" class="pin data"/>
-  <text x="60" y="281" class="text">GPIO 46 (Button 1)</text>
-  
-  <rect x="40" y="285" width="12" height="6" class="pin data"/>
-  <text x="60" y="291" class="text">GPIO 47 (Button 8)</text>
-  
-  <rect x="40" y="295" width="12" height="6" class="pin data"/>
-  <text x="60" y="301" class="text">GPIO 48 (Button 9)</text>
+  <text x="120" y="90" text-anchor="middle" class="text">Microcontroller</text>
+  <text x="120" y="105" text-anchor="middle" class="text">Main Control Unit</text>
+  <text x="120" y="120" text-anchor="middle" class="text">GPIO, SPI, Serial</text>
+  <text x="120" y="135" text-anchor="middle" class="text">3.3V Power</text>
+  <text x="120" y="150" text-anchor="middle" class="text">GND</text>
 
   <!-- TFT Display -->
-  <rect x="280" y="50" width="120" height="150" class="component" rx="5"/>
+  <rect x="280" y="50" width="120" height="100" class="component" rx="5"/>
   <text x="340" y="70" text-anchor="middle" class="title">TFT Display</text>
   <text x="340" y="85" text-anchor="middle" class="text">ST7735 1.8"</text>
-  <text x="340" y="98" text-anchor="middle" class="text">128x160</text>
-  
-  <!-- Display Pins -->
-  <rect x="290" y="110" width="10" height="5" class="pin power"/>
-  <text x="310" y="114" class="text">VCC</text>
-  
-  <rect x="290" y="118" width="10" height="5" class="pin ground"/>
-  <text x="310" y="122" class="text">GND</text>
-  
-  <rect x="290" y="126" width="10" height="5" class="pin data"/>
-  <text x="310" y="130" class="text">CS</text>
-  
-  <rect x="290" y="134" width="10" height="5" class="pin data"/>
-  <text x="310" y="138" class="text">RESET</text>
-  
-  <rect x="290" y="142" width="10" height="5" class="pin data"/>
-  <text x="310" y="146" class="text">DC/RS</text>
-  
-  <rect x="290" y="150" width="10" height="5" class="pin data"/>
-  <text x="310" y="154" class="text">MOSI</text>
-  
-  <rect x="290" y="158" width="10" height="5" class="pin data"/>
-  <text x="310" y="162" class="text">SCK</text>
-  
-  <rect x="290" y="166" width="10" height="5" class="pin power"/>
-  <text x="310" y="170" class="text">LED (BL)</text>
+  <text x="340" y="100" text-anchor="middle" class="text">128x160 Resolution</text>
+  <text x="340" y="115" text-anchor="middle" class="text">SPI Interface</text>
+  <text x="340" y="130" text-anchor="middle" class="text">Pre-soldered</text>
 
   <!-- DFPlayer Mini -->
-  <rect x="280" y="230" width="120" height="100" class="component" rx="5"/>
-  <text x="340" y="250" text-anchor="middle" class="title">DFPlayer Mini</text>
-  <text x="340" y="265" text-anchor="middle" class="text">TF-16P</text>
-  
-  <!-- DFPlayer Pins -->
-  <rect x="290" y="275" width="10" height="5" class="pin power"/>
-  <text x="310" y="279" class="text">VCC</text>
-  
-  <rect x="290" y="283" width="10" height="5" class="pin ground"/>
-  <text x="310" y="287" class="text">GND</text>
-  
-  <rect x="290" y="291" width="10" height="5" class="pin data"/>
-  <text x="310" y="295" class="text">RX</text>
-  
-  <rect x="290" y="299" width="10" height="5" class="pin data"/>
-  <text x="310" y="303" class="text">TX</text>
-  
-  <rect x="290" y="307" width="10" height="5" class="pin audio"/>
-  <text x="310" y="311" class="text">SPK_1</text>
-  
-  <rect x="290" y="315" width="10" height="5" class="pin audio"/>
-  <text x="310" y="319" class="text">SPK_2</text>
+  <rect x="280" y="180" width="120" height="80" class="component" rx="5"/>
+  <text x="340" y="200" text-anchor="middle" class="title">DFPlayer Mini</text>
+  <text x="340" y="215" text-anchor="middle" class="text">TF-16P Module</text>
+  <text x="340" y="230" text-anchor="middle" class="text">Serial Communication</text>
+  <text x="340" y="245" text-anchor="middle" class="text">MP3 Playback</text>
 
   <!-- Buttons -->
-  <rect x="450" y="50" width="100" height="180" class="component" rx="5"/>
+  <rect x="450" y="50" width="100" height="120" class="component" rx="5"/>
   <text x="500" y="70" text-anchor="middle" class="title">Buttons</text>
-  
-  <!-- Button Pins -->
-  <rect x="460" y="85" width="8" height="5" class="pin button"/>
-  <text x="475" y="89" class="text">Button 1 (GPIO 46)</text>
-  
-  <rect x="460" y="93" width="8" height="5" class="pin button"/>
-  <text x="475" y="97" class="text">Button 2 (GPIO 35)</text>
-  
-  <rect x="460" y="101" width="8" height="5" class="pin button"/>
-  <text x="475" y="105" class="text">Button 3 (GPIO 16)</text>
-  
-  <rect x="460" y="109" width="8" height="5" class="pin button"/>
-  <text x="475" y="113" class="text">Button 4 (GPIO 17)</text>
-  
-  <rect x="460" y="117" width="8" height="5" class="pin button"/>
-  <text x="475" y="121" class="text">Button 5 (GPIO 19)</text>
-  
-  <rect x="460" y="125" width="8" height="5" class="pin button"/>
-  <text x="475" y="129" class="text">Button 6 (GPIO 20)</text>
-  
-  <rect x="460" y="133" width="8" height="5" class="pin button"/>
-  <text x="475" y="137" class="text">Button 7 (GPIO 21)</text>
-  
-  <rect x="460" y="141" width="8" height="5" class="pin button"/>
-  <text x="475" y="145" class="text">Button 8 (GPIO 47)</text>
-  
-  <rect x="460" y="149" width="8" height="5" class="pin button"/>
-  <text x="475" y="153" class="text">Button 9 (GPIO 48)</text>
-  
-  <rect x="460" y="157" width="8" height="5" class="pin button"/>
-  <text x="475" y="161" class="text">Menu (GPIO 5)</text>
+  <text x="500" y="85" text-anchor="middle" class="text">9 Video Buttons</text>
+  <text x="500" y="100" text-anchor="middle" class="text">1 Menu Button</text>
+  <text x="500" y="115" text-anchor="middle" class="text">GPIO Input</text>
+  <text x="500" y="130" text-anchor="middle" class="text">Pull-up Resistors</text>
+  <text x="500" y="145" text-anchor="middle" class="text">Debounced</text>
 
   <!-- Buzzer -->
-  <rect x="450" y="250" width="70" height="50" class="component" rx="5"/>
-  <text x="485" y="270" text-anchor="middle" class="title">Buzzer</text>
-  
-  <rect x="460" y="275" width="6" height="5" class="pin audio"/>
-  <text x="475" y="279" class="text">+ (GPIO 8)</text>
-  
-  <rect x="460" y="283" width="6" height="5" class="pin ground"/>
-  <text x="475" y="287" class="text">- (GND)</text>
+  <rect x="450" y="200" width="70" height="60" class="component" rx="5"/>
+  <text x="485" y="220" text-anchor="middle" class="title">Buzzer</text>
+  <text x="485" y="235" text-anchor="middle" class="text">Button Feedback</text>
+  <text x="485" y="250" text-anchor="middle" class="text">Tone Output</text>
 
   <!-- Speakers -->
-  <rect x="450" y="320" width="100" height="60" class="component" rx="5"/>
-  <text x="500" y="340" text-anchor="middle" class="title">Speakers</text>
-  
-  <rect x="460" y="345" width="6" height="5" class="pin audio"/>
-  <text x="475" y="349" class="text">SPK_1 (+)</text>
-  
-  <rect x="460" y="353" width="6" height="5" class="pin audio"/>
-  <text x="475" y="357" class="text">SPK_2 (-)</text>
+  <rect x="450" y="280" width="100" height="60" class="component" rx="5"/>
+  <text x="500" y="300" text-anchor="middle" class="title">Speakers</text>
+  <text x="500" y="315" text-anchor="middle" class="text">Audio Output</text>
+  <text x="500" y="330" text-anchor="middle" class="text">Stereo</text>
 
   <!-- Power Supply -->
-  <rect x="30" y="350" width="100" height="60" class="component" rx="5"/>
-  <text x="80" y="370" text-anchor="middle" class="title">Power</text>
-  
-  <rect x="40" y="375" width="6" height="5" class="pin power"/>
-  <text x="55" y="379" class="text">3.3V</text>
-  
-  <rect x="40" y="383" width="6" height="5" class="pin ground"/>
-  <text x="55" y="387" class="text">GND</text>
+  <rect x="30" y="200" width="120" height="60" class="component" rx="5"/>
+  <text x="90" y="220" text-anchor="middle" class="title">Power</text>
+  <text x="90" y="235" text-anchor="middle" class="text">3.3V Supply</text>
+  <text x="90" y="250" text-anchor="middle" class="text">Stable Power</text>
 
   <!-- MicroSD Card -->
-  <rect x="150" y="350" width="80" height="50" class="component" rx="5"/>
-  <text x="190" y="370" text-anchor="middle" class="title">MicroSD</text>
-  <text x="190" y="385" text-anchor="middle" class="text">0001.mp3</text>
-  <text x="190" y="395" text-anchor="middle" class="text">0002.mp3...</text>
+  <rect x="200" y="200" width="80" height="60" class="component" rx="5"/>
+  <text x="240" y="220" text-anchor="middle" class="title">MicroSD</text>
+  <text x="240" y="235" text-anchor="middle" class="text">MP3 Files</text>
+  <text x="240" y="250" text-anchor="middle" class="text">0001.mp3, etc.</text>
 
-  <!-- Symbolic Connections -->
+  <!-- Logical Connections -->
   
   <!-- Power Distribution -->
-  <line x1="80" y1="375" x2="80" y2="85" class="connection power-line"/>
-  <text x="90" y="100" class="text">Power Distribution</text>
+  <line x1="90" y1="230" x2="90" y2="100" class="connection power-line"/>
+  <text x="100" y="120" class="text">Power Distribution</text>
   
-  <!-- Ground Distribution -->
-  <line x1="80" y1="383" x2="80" y2="95" class="connection ground-line"/>
-  <text x="90" y="110" class="text">Ground Distribution</text>
+  <!-- Display Connection -->
+  <line x1="210" y1="100" x2="280" y2="100" class="connection data-line"/>
+  <text x="245" y="90" class="text">SPI Communication</text>
   
-  <!-- Display SPI Bus -->
-  <line x1="52" y1="105" x2="290" y2="126" class="connection data-line"/>
-  <text x="170" y="115" class="text">SPI Bus</text>
-  
-  <!-- DFPlayer Serial -->
-  <line x1="52" y1="145" x2="290" y2="291" class="connection data-line"/>
-  <text x="170" y="200" class="text">Serial Communication</text>
+  <!-- DFPlayer Connection -->
+  <line x1="210" y1="100" x2="280" y2="220" class="connection data-line"/>
+  <text x="245" y="160" class="text">Serial Communication</text>
   
   <!-- Audio Output -->
-  <line x1="290" y1="307" x2="460" y2="345" class="connection audio-line"/>
-  <text x="375" y="325" class="text">Audio Output</text>
+  <line x1="340" y1="240" x2="450" y2="310" class="connection audio-line"/>
+  <text x="395" y="275" class="text">Audio Output</text>
   
   <!-- Button Matrix -->
-  <line x1="52" y1="275" x2="460" y2="85" class="connection button-line"/>
-  <text x="256" y="180" class="text">Button Matrix</text>
+  <line x1="210" y1="100" x2="450" y2="100" class="connection button-line"/>
+  <text x="330" y="90" class="text">Button Matrix</text>
   
   <!-- Buzzer Connection -->
-  <line x1="52" y1="135" x2="460" y2="275" class="connection audio-line"/>
-  <text x="256" y="200" class="text">Tone Output</text>
+  <line x1="210" y1="100" x2="450" y2="230" class="connection audio-line"/>
+  <text x="330" y="165" class="text">Tone Output</text>
+  
+  <!-- MicroSD Connection -->
+  <line x1="240" y1="230" x2="340" y2="220" class="connection data-line"/>
+  <text x="290" y="210" class="text">File Access</text>
   
   <!-- Legend -->
   <rect x="600" y="50" width="250" height="150" class="component" rx="5"/>
   <text x="725" y="70" text-anchor="middle" class="title">Legend</text>
   
   <rect x="610" y="85" width="12" height="6" class="power"/>
-  <text x="630" y="91" class="text">Power (3.3V)</text>
+  <text x="630" y="91" class="text">Power Distribution</text>
   
   <rect x="610" y="95" width="12" height="6" class="ground"/>
-  <text x="630" y="101" class="text">Ground (GND)</text>
+  <text x="630" y="101" class="text">Ground Distribution</text>
   
   <rect x="610" y="105" width="12" height="6" class="data"/>
-  <text x="630" y="111" class="text">Data/Control</text>
+  <text x="630" y="111" class="text">Data Communication</text>
   
   <rect x="610" y="115" width="12" height="6" class="button"/>
-  <text x="630" y="121" class="text">Button Input</text>
+  <text x="630" y="121" class="text">Button Control</text>
   
   <rect x="610" y="125" width="12" height="6" class="audio"/>
-  <text x="630" y="131" class="text">Audio</text>
+  <text x="630" y="131" class="text">Audio Signal</text>
   
   <!-- Notes -->
   <rect x="600" y="220" width="250" height="120" class="component" rx="5"/>
-  <text x="725" y="240" text-anchor="middle" class="title">Notes</text>
+  <text x="725" y="240" text-anchor="middle" class="title">System Overview</text>
   
-  <text x="610" y="260" class="text">• Display is pre-soldered</text>
-  <text x="610" y="275" class="text">• Buttons use internal pull-up</text>
-  <text x="610" y="290" class="text">• DFPlayer needs stable 3.3V</text>
-  <text x="610" y="305" class="text">• MicroSD format: FAT32</text>
-  <text x="610" y="320" class="text">• MP3 files: 0001.mp3, 0002.mp3...</text>
-  <text x="610" y="335" class="text">• Buzzer for button feedback</text>
+  <text x="610" y="260" class="text">• ESP32-S3 controls all components</text>
+  <text x="610" y="275" class="text">• Display shows video and UI</text>
+  <text x="610" y="290" class="text">• DFPlayer handles audio playback</text>
+  <text x="610" y="305" class="text">• Buttons provide user input</text>
+  <text x="610" y="320" class="text">• Buzzer gives tactile feedback</text>
+  <text x="610" y="335" class="text">• Speakers output synchronized audio</text>
 
 </svg> 
