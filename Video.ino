@@ -1,9 +1,15 @@
 #include "DisplayManager.h"
 #include <LittleFS.h>
 #include "MjpegClass.h"
+#include "DFRobotDFPlayerMini.h"
 
 // ===== GLOBAL DISPLAY MANAGER =====
 DisplayManager display;
+
+// ===== DFPLAYER MINI SETUP =====
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(9, 10); // RX=9, TX=10
+DFRobotDFPlayerMini player;
 
 // Configuration
 #define TOTAL_VIDEOS 9
@@ -12,6 +18,8 @@ DisplayManager display;
 #define FRAME_INTERVAL (1000 / TARGET_FPS)
 #define DEBOUNCE_DELAY 50
 #define SPLASH_DURATION 2000
+#define BUTTON_TONE_FREQ 800
+#define BUTTON_TONE_DURATION 100
 
 // System states
 enum SystemState {
@@ -26,19 +34,20 @@ enum SystemState {
 struct VideoInfo {
   const char* filename;
   const char* displayName;
+  uint8_t audioTrack; // MP3 track number (0001.mp3 = 1, 0002.mp3 = 2, etc.)
 };
 
-// Video list
+// Video list with audio track mapping
 const VideoInfo videoDatabase[TOTAL_VIDEOS] = {
-  {"/video_1.mjpeg", "Video 1"},
-  {"/video_2.mjpeg", "Video 2"},
-  {"/video_3.mjpeg", "Video 3"},
-  {"/video_4.mjpeg", "Video 4"},
-  {"/video_5.mjpeg", "Video 5"},
-  {"/video_6.mjpeg", "Video 6"},
-  {"/video_7.mjpeg", "Video 7"},
-  {"/video_8.mjpeg", "Video 8"},
-  {"/video_9.mjpeg", "Video 9"}
+  {"/video_1.mjpeg", "Video 1", 1},
+  {"/video_2.mjpeg", "Video 2", 2},
+  {"/video_3.mjpeg", "Video 3", 3},
+  {"/video_4.mjpeg", "Video 4", 4},
+  {"/video_5.mjpeg", "Video 5", 5},
+  {"/video_6.mjpeg", "Video 6", 6},
+  {"/video_7.mjpeg", "Video 7", 7},
+  {"/video_8.mjpeg", "Video 8", 8},
+  {"/video_9.mjpeg", "Video 9", 9}
 };
 
 const char* HOME_VIDEO = "/home.mjpeg";
@@ -61,6 +70,10 @@ bool videoPlaying = false;
 unsigned long lastFrameTime = 0;
 unsigned long splashStartTime = 0;
 
+// Audio state
+bool audioPlaying = false;
+uint8_t currentAudioTrack = 0;
+
 // Button management with debounce
 struct ButtonState {
   bool currentState;
@@ -77,6 +90,7 @@ void initializeSystem();
 void initializeFileSystem();
 bool allocateBuffer();
 void initializeButtons();
+void initializeDFPlayer();
 void updateButtons();
 bool isButtonPressed(ButtonState& button, uint8_t pin);
 void handleStateMachine();
@@ -89,11 +103,14 @@ void drawErrorScreen(const char* error);
 bool startVideo(const char* filename, int videoIndex = -1);
 void stopVideo();
 void returnToHome();
+void playButtonTone();
+void startAudio(uint8_t trackNumber);
+void stopAudio();
 int jpegDrawCallback(JPEGDRAW* pDraw);
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("🚀 Starting MJPEG Player...");
+  Serial.println("🚀 Starting MJPEG Player with Audio...");
   
   initializeSystem();
   splashStartTime = millis();
@@ -113,6 +130,7 @@ void initializeSystem() {
   }
   
   initializeButtons();
+  initializeDFPlayer();
   drawSplashScreen();
   initializeFileSystem();
   
@@ -123,6 +141,20 @@ void initializeSystem() {
   }
   
   Serial.println("✅ System initialized successfully");
+}
+
+void initializeDFPlayer() {
+  mySerial.begin(9600, SERIAL_8N1, 9, 10); // RX=9, TX=10
+  
+  if (player.begin(mySerial)) {
+    Serial.println("🎵 DFPlayer ready");
+    player.volume(25); // Volume from 0 to 30
+    // No track plays at startup
+  } else {
+    Serial.println("❌ DFPlayer not detected");
+    // Don't halt execution, just log the error
+    // while (true); // Uncomment if you want to halt on DFPlayer failure
+  }
 }
 
 void initializeFileSystem() {
@@ -158,11 +190,15 @@ void initializeButtons() {
 
 void updateButtons() {
   // Update menu button
-  isButtonPressed(menuButton, MENU_BUTTON_PIN);
+  if (isButtonPressed(menuButton, MENU_BUTTON_PIN)) {
+    playButtonTone();
+  }
   
   // Update video buttons
   for (int i = 0; i < TOTAL_VIDEOS; i++) {
-    isButtonPressed(videoButtons[i], BUTTON_PINS[i]);
+    if (isButtonPressed(videoButtons[i], BUTTON_PINS[i])) {
+      playButtonTone();
+    }
   }
 }
 
@@ -186,6 +222,11 @@ bool isButtonPressed(ButtonState& button, uint8_t pin) {
   
   button.lastState = reading;
   return pressed;
+}
+
+void playButtonTone() {
+  // Play a short tone when button is pressed
+  tone(8, BUTTON_TONE_FREQ, BUTTON_TONE_DURATION); // Use pin 8 for buzzer
 }
 
 void handleStateMachine() {
@@ -348,9 +389,14 @@ bool startVideo(const char* filename, int videoIndex) {
   videoPlaying = true;
   lastFrameTime = millis();
   
+  // Start audio if it's a numbered video (not home or menu)
+  if (videoIndex >= 0) {
+    startAudio(videoDatabase[videoIndex].audioTrack);
+  }
+  
   Serial.printf("▶️ Playing: %s", filename);
   if (videoIndex >= 0) {
-    Serial.printf(" (%s)", videoDatabase[videoIndex].displayName);
+    Serial.printf(" (%s) with audio track %d", videoDatabase[videoIndex].displayName, videoDatabase[videoIndex].audioTrack);
   }
   Serial.println();
   
@@ -362,6 +408,7 @@ void stopVideo() {
     mjpegFile.close();
   }
   videoPlaying = false;
+  stopAudio();
 }
 
 void returnToHome() {
@@ -370,6 +417,26 @@ void returnToHome() {
   if (!startVideo(HOME_VIDEO)) {
     currentState = STATE_ERROR;
     drawErrorScreen("Cannot load home video");
+  }
+}
+
+void startAudio(uint8_t trackNumber) {
+  if (player.available()) {
+    player.play(trackNumber);
+    audioPlaying = true;
+    currentAudioTrack = trackNumber;
+    Serial.printf("🎵 Playing audio track: %04d.mp3\n", trackNumber);
+  } else {
+    Serial.println("⚠️ DFPlayer not available for audio");
+  }
+}
+
+void stopAudio() {
+  if (player.available() && audioPlaying) {
+    player.stop();
+    audioPlaying = false;
+    currentAudioTrack = 0;
+    Serial.println("🔇 Audio stopped");
   }
 }
 
