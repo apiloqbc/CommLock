@@ -16,6 +16,32 @@ Wiring guide reference:
 https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-an-esp32-microcontroller/
 
 ---
+| Left Side     | Right Side  |
+|---------------|-------------|
+| 3V3           | GND         |
+| 3V3           | TX          |
+| RST           | RX          |
+| 4             | 1           |
+| 5             | 2           |
+| 6             | 42          |
+| 7             | 41          |
+| 15            | 40          |
+| 16            | 39          |
+| 17            | 38          |
+| 18            | 37          |
+| 8             | 36          |
+| 3             | 35          |
+| 46            | 0           |
+| 9             | 45          |
+| 10            | 48          |
+| 11            | 47          |
+| 12            | 21          |
+| 13            | 20          |
+| 14            | 19          |
+| 5Vin          | GND         |
+| GND           | GND         |
+
+
 
 ## 🔌 Display Pinout (ESP32 ↔ TFT ST7735)
 
