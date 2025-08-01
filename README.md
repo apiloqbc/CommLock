@@ -16,6 +16,9 @@ Wiring guide reference:
 https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-an-esp32-microcontroller/
 
 ---
+
+## 🔌 ESP32S3 Pinout (Dev Module)
+
 | Left Side     | Right Side  |
 |---------------|-------------|
 | 3V3           | GND         |
@@ -40,6 +43,10 @@ https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-a
 | 14            | 19          |
 | 5Vin          | GND         |
 | GND           | GND         |
+
+
+![Pinout](images/pins.jpg)
+![Board](images/board.jpg)
 
 
 
