@@ -1,6 +1,6 @@
-# 🎬 MJPEG Video Player - ESP32-S3 + TFT Display + Audio
+# 🎬 MJPEG Video Player - ESP32-S3 + TFT Display + Audio + Commlock
 
-An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and working 1.8" TFT display and synchronized MP3 audio. Ideal for creating interactive installations, informational displays, or presentation systems.
+An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and working 1.8" TFT display, synchronized MP3 audio, and a special Commlock system inspired by "1999: A Space Odyssey". Ideal for creating interactive installations, informational displays, or presentation systems.
 
 ## 📋 System Overview
 
@@ -13,11 +13,14 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 - **MJPEG Video Playback** on 1.8" TFT display (128x160 pixels)
 - **Synchronized MP3 Audio** via DFPlayer Mini module
 - **Interactive Control** via physical buttons (up to 9 videos)
+- **Commlock System** - Special display inspired by "1999: A Space Odyssey"
+- **Configurable LED System** - LED activation for specific videos with customizable timing
 - **Button Tone Feedback** when buttons are pressed
 - **Simplified Display Management** through `DisplayManager` class
-- **State System** (splash, home, menu, playback)
-- **Integrated Error Handling**
+- **State System** (splash, home, menu, playback, commlock)
+- **Integrated Error Handling** with recovery mechanisms
 - **Button Debouncing** for reliable control
+- **Professional Logging System** with multiple levels and categories
 
 ## 🧰 Required Hardware
 
@@ -30,6 +33,7 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 - **DFPlayer Mini MP3 Module** (TF-16P)
 - **Pushbuttons** (up to 9 for video selection)
 - **Buzzer** (for button tone feedback)
+- **LED** (for video-specific feedback)
 - **Power Supply** USB or regulated 3.3V
 - **MicroSD Card** (for MP3 files)
 
@@ -39,7 +43,7 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 
 *ESP32-S3 pin layout for reference*
 
-## 🔌 ESP32-S3 Pinout (Pre-soldered Display + Audio)
+## 🔌 ESP32-S3 Pinout (Pre-soldered Display + Audio + LED)
 
 ### Simplified Wiring Diagram
 
@@ -77,26 +81,79 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 | +          | GPIO 8    | Tone Output |
 | -          | GND       | Ground |
 
+#### LED Connection
+| LED Pin | ESP32 Pin | Function |
+|---------|-----------|----------|
+| +       | GPIO 8    | LED Control |
+| -       | GND       | Ground |
+
 > **Note:** The display is pre-soldered and working. Pin configuration is in `PINS_ESP32-S3-LCD-ST7735_1_8.h`.
 
 ## 🎮 Button Control
 
 The system supports up to 9 buttons for video selection:
 
-| Button | GPIO Pin | Video File | Audio File |
-|--------|----------|------------|------------|
-| 1      | 46       | `video_1.mjpeg` | `0001.mp3` |
-| 2      | 35       | `video_2.mjpeg` | `0002.mp3` |
-| 3      | 16       | `video_3.mjpeg` | `0003.mp3` |
-| 4      | 17       | `video_4.mjpeg` | `0004.mp3` |
-| 5      | 19       | `video_5.mjpeg` | `0005.mp3` |
-| 6      | 20       | `video_6.mjpeg` | `0006.mp3` |
-| 7      | 21       | `video_7.mjpeg` | `0007.mp3` |
-| 8      | 47       | `video_8.mjpeg` | `0008.mp3` |
-| 9      | 48       | `video_9.mjpeg` | `0009.mp3` |
-| **Menu** | **5** | **Return to menu** | **No audio** |
+| Button | GPIO Pin | Video File | Audio File | LED Behavior |
+|--------|----------|------------|------------|--------------|
+| 1      | 46       | `video_1.mjpeg` | `0001.mp3` | 5s duration, 500ms interval |
+| 2      | 35       | `video_2.mjpeg` | `0002.mp3` | 3s duration, 300ms interval |
+| 3      | 16       | `video_3.mjpeg` | `0003.mp3` | 4s duration, 400ms interval |
+| 4      | 17       | `video_4.mjpeg` | `0004.mp3` | 6s duration, 600ms interval |
+| 5      | 19       | `video_5.mjpeg` | `0005.mp3` | 2s duration, 200ms interval |
+| 6      | 20       | `video_6.mjpeg` | `0006.mp3` | 7s duration, 700ms interval |
+| 7      | 21       | `video_7.mjpeg` | `0007.mp3` | 3.5s duration, 350ms interval |
+| 8      | 47       | `video_8.mjpeg` | `0008.mp3` | 4.5s duration, 450ms interval |
+| 9      | 48       | `video_9.mjpeg` | `0009.mp3` | **Commlock System** |
+| **Menu** | **5** | **Return to menu** | **No audio** | **No LED** |
 
-> **Note:** Home video and menu have no audio. Button presses trigger a tone feedback.
+> **Note:** Home video and menu have no audio. Button presses trigger a tone feedback. LED behavior is configurable in `LEDConfig.h`.
+
+## 🚀 Commlock System
+
+### Special Feature: Commlock Display
+
+**Button 9** activates a special Commlock display inspired by "1999: A Space Odyssey":
+
+- **Lunar Time Display** with deep blue aesthetic
+- **15-second duration** (configurable)
+- **Random time initialization** for authentic feel
+- **Space-themed interface** with "1999: A Space Odyssey" subtitle
+- **Exit with any button** or automatic return
+
+### Commlock Features:
+- ✅ **Authentic Commlock Interface**
+- ✅ **Lunar Time Simulation**
+- ✅ **Deep Blue Color Scheme**
+- ✅ **Configurable Duration**
+- ✅ **Professional Integration**
+
+## 🔴 LED System
+
+### Configurable LED Behavior
+
+Each video can trigger a specific LED behavior:
+
+- **Duration**: How long the LED blinks (milliseconds)
+- **Interval**: Time between on/off states (milliseconds)
+- **Enable/Disable**: Per-video LED activation
+- **Automatic Activation**: LED starts when video begins
+
+### Configuration
+
+Edit `LEDConfig.h` to customize LED behavior:
+
+```cpp
+// Example configurations:
+{0, 5000, 500, true},   // Video 1: 5s duration, 500ms interval
+{1, 3000, 300, true},   // Video 2: 3s duration, 300ms interval
+{2, 4000, 400, false},  // Video 3: LED disabled
+```
+
+### LED Examples:
+- **Fast Alert**: `{0, 3000, 100, true}` - 3s, 100ms interval
+- **Slow Ambient**: `{1, 10000, 1000, true}` - 10s, 1s interval
+- **Continuous**: `{3, 15000, 200, true}` - 15s, 200ms interval
+- **Disabled**: `{2, 5000, 500, false}` - LED off for video 3
 
 ## 📚 Required Libraries
 
