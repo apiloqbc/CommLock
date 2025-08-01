@@ -108,6 +108,30 @@ Install these libraries via Arduino IDE:
 4. **DFRobotDFPlayerMini** - MP3 audio playback
 5. **SoftwareSerial** - Serial communication (included with ESP32)
 
+## 📁 Project Structure
+
+```
+Video/
+├── Video.ino                    # Main sketch
+├── DisplayManager.h             # Display management class
+├── PINS_ESP32-S3-LCD-ST7735_1_8.h  # Pin configuration
+├── MjpegClass.h                # MJPEG decoding class
+├── README.md                   # Documentation
+├── examples/                   # Example sketches
+│   ├── DisplayExample.ino      # Display usage example
+│   ├── AudioExample.ino        # Audio usage example
+│   └── README.md              # Examples documentation
+├── data/                       # MJPEG video files
+│   ├── home.mjpeg             # Home video (no audio)
+│   ├── video_1.mjpeg          # Video 1
+│   └── ...                     # Other videos
+└── images/                     # Documentation images
+    ├── board.jpg
+    ├── pins.jpg
+    ├── wiring_diagram.svg      # Complete wiring diagram
+    └── wiring_diagram_simple.svg  # Simplified wiring diagram
+```
+
 ## 🎞️ Video and Audio Preparation
 
 ### Video Conversion
@@ -205,6 +229,15 @@ The complete system provides a professional multimedia experience with:
 ## 🔧 DisplayManager Class
 
 Display management has been simplified through the `DisplayManager` class, providing easy-to-use methods for display operations including text rendering, screen clearing, and JPEG frame drawing.
+
+## 📚 Examples
+
+The project includes example sketches in the `examples/` folder:
+
+- **DisplayExample.ino** - Basic display operations and text rendering
+- **AudioExample.ino** - DFPlayer Mini usage and audio control
+
+See `examples/README.md` for detailed information about each example.
 
 ## 🎵 Audio Management
 
