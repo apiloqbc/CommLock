@@ -77,11 +77,43 @@ const uint8_t BUTTON_PINS[TOTAL_VIDEOS] = {
 };
 const uint8_t MENU_BUTTON_PIN = 5;
 
+// ===== COMMLOCK LEVEL 1 ENHANCEMENTS =====
+// Audio Commlock - Authentic sounds
+#define COMMLOCK_BEEP_FREQ 1200
+#define COMMLOCK_BEEP_DURATION 200
+#define COMMLOCK_TICK_FREQ 800
+#define COMMLOCK_TICK_DURATION 50
+#define COMMLOCK_CONFIRM_FREQ 1500
+#define COMMLOCK_CONFIRM_DURATION 150
+
+// Lunar Time Calculations
+#define LUNAR_DAY_HOURS 24
+#define LUNAR_DAY_MINUTES (LUNAR_DAY_HOURS * 60)
+#define LUNAR_DAY_SECONDS (LUNAR_DAY_MINUTES * 60)
+#define LUNAR_DAY_MILLIS (LUNAR_DAY_SECONDS * 1000L)
+
+// Visual Effects
+#define COMMLOCK_CRT_EFFECT true
+#define COMMLOCK_SCAN_LINE_INTERVAL 100
+#define COMMLOCK_GLOW_EFFECT true
+#define COMMLOCK_GLOW_INTERVAL 2000
+
 // Commlock variables
 int commlockHour = 0;
 int commlockMinute = 0;
+int commlockSecond = 0;
 unsigned long commlockStartTime = 0;
 unsigned long lastCommlockUpdate = 0;
+unsigned long lastTickTime = 0;
+unsigned long lastScanLineTime = 0;
+unsigned long lastGlowTime = 0;
+bool commlockTickState = false;
+bool scanLineVisible = false;
+bool glowEffectActive = false;
+
+// Lunar time tracking
+unsigned long lunarStartTime = 0;
+float lunarDayProgress = 0.0f;
 
 // LED system variables
 LEDConfig ledConfigs[TOTAL_VIDEOS];
@@ -158,6 +190,17 @@ void returnToHome();
 void playButtonTone();
 void startAudio(uint8_t trackNumber);
 void stopAudio();
+
+// ===== COMMLOCK LEVEL 1 FUNCTIONS =====
+void playCommlockBeep();
+void playCommlockTick();
+void playCommlockConfirm();
+void updateLunarTimeRealistic();
+void calculateLunarDayProgress();
+void drawCommlockAdvanced();
+void drawCommlockCRTEffect();
+void drawCommlockGlowEffect();
+void updateCommlockVisualEffects();
 int jpegDrawCallback(JPEGDRAW* pDraw);
 void reportError(ErrorCode error, const char* details = nullptr);
 bool attemptRecovery();
@@ -453,17 +496,26 @@ void handleCommlockState() {
   // Check if Commlock display should end
   if (millis() - commlockStartTime >= COMMLOCK_DURATION) {
     Logger::info(LOG_CAT_SYSTEM, "Commlock display finished, returning to previous state");
+    playCommlockConfirm(); // Play exit sound
     returnToHome();
     return;
   }
   
-  // Update Commlock time every minute
+  // Update Commlock time and visual effects
   updateCommlock();
+  
+  // Play tick sound every second for authentic feel
+  unsigned long now = millis();
+  if (now - lastTickTime >= 1000) {
+    lastTickTime = now;
+    playCommlockTick();
+  }
   
   // Handle any button press to exit early
   if (menuButton.wasPressed) {
     menuButton.wasPressed = false;
     Logger::info(LOG_CAT_SYSTEM, "Menu button pressed during Commlock, returning to home");
+    playCommlockConfirm(); // Play confirmation sound
     returnToHome();
     return;
   }
@@ -472,6 +524,7 @@ void handleCommlockState() {
     if (videoButtons[i].wasPressed) {
       videoButtons[i].wasPressed = false;
       Logger::info(LOG_CAT_SYSTEM, "Video button pressed during Commlock, returning to home");
+      playCommlockConfirm(); // Play confirmation sound
       returnToHome();
       return;
     }
@@ -700,44 +753,184 @@ void stopAudio() {
   }
 }
 
+// ===== COMMLOCK LEVEL 1 FUNCTIONS =====
+void playCommlockBeep() {
+  tone(8, COMMLOCK_BEEP_FREQ, COMMLOCK_BEEP_DURATION);
+}
+
+void playCommlockTick() {
+  tone(8, COMMLOCK_TICK_FREQ, COMMLOCK_TICK_DURATION);
+}
+
+void playCommlockConfirm() {
+  tone(8, COMMLOCK_CONFIRM_FREQ, COMMLOCK_CONFIRM_DURATION);
+}
+
+void updateLunarTimeRealistic() {
+  unsigned long now = millis();
+  
+  // Update seconds every second
+  if (now - lastCommlockUpdate >= 1000) {
+    lastCommlockUpdate = now;
+    
+    commlockSecond++;
+    if (commlockSecond >= 60) {
+      commlockSecond = 0;
+      commlockMinute++;
+      if (commlockMinute >= 60) {
+        commlockMinute = 0;
+        commlockHour++;
+        if (commlockHour >= 24) {
+          commlockHour = 0;
+        }
+      }
+    }
+    
+    Logger::debug(LOG_CAT_SYSTEM, "Commlock time updated: %02d:%02d:%02d", commlockHour, commlockMinute, commlockSecond);
+  }
+}
+
+void calculateLunarDayProgress() {
+  unsigned long now = millis();
+  if (now - lunarStartTime >= LUNAR_DAY_MILLIS) {
+    lunarStartTime = now;
+    lunarDayProgress = 0.0f; // Reset progress at the start of a new day
+  } else {
+    lunarDayProgress = (float)(now - lunarStartTime) / LUNAR_DAY_MILLIS;
+  }
+}
+
+void drawCommlockAdvanced() {
+  display.clear();
+  
+  // Create authentic Commlock colors
+  uint16_t commlockBlue = display._gfx->color565(0, 150, 255);
+  uint16_t commlockGreen = display._gfx->color565(0, 255, 100);
+  uint16_t commlockOrange = display._gfx->color565(255, 150, 0);
+  
+  // Draw CRT effect
+  if (COMMLOCK_CRT_EFFECT) {
+    drawCommlockCRTEffect();
+  }
+  
+  // Draw glow effect
+  if (COMMLOCK_GLOW_EFFECT) {
+    drawCommlockGlowEffect();
+  }
+  
+  // Draw "COMMLOCK" title with authentic styling
+  display.setTextSize(1);
+  display.setTextColor(commlockBlue);
+  display.drawCenteredText("COMMLOCK", 15);
+  
+  // Draw time with larger, more prominent display
+  display.setTextSize(3);
+  char timeStr[10];
+  sprintf(timeStr, "%02d:%02d", commlockHour, commlockMinute);
+  display.drawCenteredText(timeStr, 70);
+  
+  // Draw seconds with smaller text
+  display.setTextSize(1);
+  display.setTextColor(commlockGreen);
+  char secondStr[10];
+  sprintf(secondStr, ":%02d", commlockSecond);
+  display.drawCenteredText(secondStr, 100);
+  
+  // Draw lunar day progress
+  display.setTextSize(1);
+  display.setTextColor(commlockOrange);
+  char progressStr[20];
+  sprintf(progressStr, "LUNAR DAY: %.1f%%", lunarDayProgress * 100);
+  display.drawCenteredText(progressStr, 130);
+  
+  // Draw subtitle
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.drawCenteredText("1999: A Space Odyssey", 150);
+  
+  // Draw status with authentic Commlock styling
+  display.setCursor(5, display.height() - 15);
+  display.setTextColor(CYAN);
+  display.print("PRESS ANY KEY TO EXIT");
+}
+
+void drawCommlockCRTEffect() {
+  if (millis() - lastScanLineTime >= COMMLOCK_SCAN_LINE_INTERVAL) {
+    lastScanLineTime = millis();
+    scanLineVisible = !scanLineVisible;
+  }
+  
+  if (scanLineVisible) {
+    // Draw multiple scan lines for authentic CRT effect
+    for (int y = 0; y < display.height(); y += 4) {
+      display.drawFastHLine(0, y, display.width(), display.color565(0, 50, 100)); // Subtle blue scan lines
+    }
+  }
+}
+
+void drawCommlockGlowEffect() {
+  if (millis() - lastGlowTime >= COMMLOCK_GLOW_INTERVAL) {
+    lastGlowTime = millis();
+    glowEffectActive = !glowEffectActive;
+  }
+  
+  if (glowEffectActive) {
+    // Create a subtle glow effect around the edges
+    uint16_t glowColor = display.color565(0, 100, 200);
+    display.drawRect(0, 0, display.width(), display.height(), glowColor);
+    display.drawRect(1, 1, display.width()-2, display.height()-2, glowColor);
+  }
+}
+
+void updateCommlockVisualEffects() {
+  // This function is called by handleCommlockState to update and draw effects
+  // It should contain the logic to update and draw CRT and Glow effects
+  // For now, it just calls the individual effect drawing functions
+  drawCommlockCRTEffect();
+  drawCommlockGlowEffect();
+}
+
 void startCommlock() {
   Logger::info(LOG_CAT_SYSTEM, "Starting Commlock display");
   
   // Stop current video if playing
   stopVideo();
   
+  // Play Commlock startup beep
+  playCommlockBeep();
+  
   // Initialize Commlock time with random values
   commlockHour = random(0, 24);
   commlockMinute = random(0, 60);
+  commlockSecond = 0;
   commlockStartTime = millis();
   lastCommlockUpdate = millis();
+  lastTickTime = millis();
+  lunarStartTime = millis(); // Initialize lunar time
+  
+  // Initialize visual effects
+  scanLineVisible = false;
+  glowEffectActive = false;
+  lastScanLineTime = millis();
+  lastGlowTime = millis();
   
   // Change state and draw
   currentState = STATE_COMMLOCK;
-  drawCommlock();
+  drawCommlockAdvanced(); // Use the advanced drawing function
   
   Logger::info(LOG_CAT_SYSTEM, "Commlock initialized: %02d:%02d", commlockHour, commlockMinute);
 }
 
 void updateCommlock() {
-  unsigned long now = millis();
+  // Update time and lunar progress
+  updateLunarTimeRealistic();
+  calculateLunarDayProgress();
   
-  // Update time every minute (60000ms)
-  if (now - lastCommlockUpdate >= 60000) {
-    lastCommlockUpdate = now;
-    
-    commlockMinute++;
-    if (commlockMinute >= 60) {
-      commlockMinute = 0;
-      commlockHour++;
-      if (commlockHour >= 24) {
-        commlockHour = 0;
-      }
-    }
-    
-    Logger::debug(LOG_CAT_SYSTEM, "Commlock time updated: %02d:%02d", commlockHour, commlockMinute);
-    drawCommlock();
-  }
+  // Update visual effects
+  updateCommlockVisualEffects();
+  
+  // Draw the updated Commlock display
+  drawCommlockAdvanced();
 }
 
 void startLED(uint8_t videoIndex) {
