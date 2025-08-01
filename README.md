@@ -141,18 +141,18 @@ An interactive MJPEG video playback system for ESP32-S3 with a pre-soldered and 
 | **6** | 6 | Flash SCK | Available | **42** | 42 | - | Available |
 | **7** | 7 | Flash SDA | Available | **41** | 41 | - | Available |
 | **15** | 15 | Display CS | **Used** | **40** | 40 | - | Available |
-| **16** | 16 | Button 3 | **Used** | **39** | 39 | - | Available |
-| **17** | 17 | Button 4 | **Used** | **38** | 38 | - | Available |
-| **18** | 18 | - | Available | **37** | 37 | - | Available |
+| **16** | 16 | Button 1 | **Used** | **39** | 39 | - | Available |
+| **17** | 17 | Button 2 | **Used** | **38** | 38 | - | Available |
+| **18** | 18 | Button 3 | **Used** | **37** | 37 | - | Available |
 | **8** | 8 | LED + Buzzer | **Used** | **36** | 36 | - | Available |
-| **3** | 3 | U0RXD | Available | **35** | 35 | Button 2 | **Used** |
-| **46** | 46 | Button 1 | **Used** | **0** | 0 | Boot Mode | Available |
+| **3** | 3 | U0RXD | Available | **35** | 35 | - | Available |
+| **0** | 0 | Boot Mode | Available | **0** | 0 | Boot Mode | Available |
 | **9** | 9 | DFPlayer RX | **Used** | **45** | 45 | - | Available |
-| **10** | 10 | DFPlayer TX | **Used** | **48** | 48 | Button 9 | **Used** |
-| **11** | 11 | Flash WP | Available | **47** | 47 | Button 8 | **Used** |
-| **12** | 12 | Flash HD | Available | **21** | 21 | Button 7 | **Used** |
-| **13** | 13 | Display SDA/MOSI | **Used** | **20** | 20 | Button 6 | **Used** |
-| **14** | 14 | Display SCK | **Used** | **19** | 19 | Button 5 | **Used** |
+| **10** | 10 | DFPlayer TX | **Used** | **24** | 24 | Button 9 | **Used** |
+| **11** | 11 | Flash WP | Available | **23** | 23 | Button 8 | **Used** |
+| **12** | 12 | Flash HD | Available | **22** | 22 | Button 7 | **Used** |
+| **13** | 13 | Display SDA/MOSI | **Used** | **21** | 21 | Button 6 | **Used** |
+| **14** | 14 | Display SCK | **Used** | **20** | 20 | Button 5 | **Used** |
 | **5Vin** | - | 5V Power Supply | Power | **GND** | - | Ground | Ground |
 | **GND** | - | Ground | Ground | **GND** | - | Ground | Ground |
 
@@ -235,15 +235,15 @@ The system supports up to 9 buttons for video selection:
 
 | Button | GPIO Pin | Video File | Audio File | LED Behavior |
 |--------|----------|------------|------------|--------------|
-| 1      | 46       | `video_1.mjpeg` | `0001.mp3` | 5s duration, 500ms interval |
-| 2      | 35       | `video_2.mjpeg` | `0002.mp3` | 3s duration, 300ms interval |
-| 3      | 16       | `video_3.mjpeg` | `0003.mp3` | 4s duration, 400ms interval |
-| 4      | 17       | `video_4.mjpeg` | `0004.mp3` | 6s duration, 600ms interval |
-| 5      | 19       | `video_5.mjpeg` | `0005.mp3` | 2s duration, 200ms interval |
-| 6      | 20       | `video_6.mjpeg` | `0006.mp3` | 7s duration, 700ms interval |
-| 7      | 21       | `video_7.mjpeg` | `0007.mp3` | 3.5s duration, 350ms interval |
-| 8      | 47       | `video_8.mjpeg` | `0008.mp3` | 4.5s duration, 450ms interval |
-| 9      | 48       | `video_9.mjpeg` | `0009.mp3` | **Commlock System** |
+| 1      | 16       | `video_1.mjpeg` | `0001.mp3` | 5s duration, 500ms interval |
+| 2      | 17       | `video_2.mjpeg` | `0002.mp3` | 3s duration, 300ms interval |
+| 3      | 18       | `video_3.mjpeg` | `0003.mp3` | 4s duration, 400ms interval |
+| 4      | 19       | `video_4.mjpeg` | `0004.mp3` | 6s duration, 600ms interval |
+| 5      | 20       | `video_5.mjpeg` | `0005.mp3` | 2s duration, 200ms interval |
+| 6      | 21       | `video_6.mjpeg` | `0006.mp3` | 7s duration, 700ms interval |
+| 7      | 22       | `video_7.mjpeg` | `0007.mp3` | 3.5s duration, 350ms interval |
+| 8      | 23       | `video_8.mjpeg` | `0008.mp3` | 4.5s duration, 450ms interval |
+| 9      | 24       | `video_9.mjpeg` | `0009.mp3` | **Commlock System** |
 | **Menu** | **5** | **Return to menu** | **No audio** | **No LED** |
 
 > **Note:** Home video and menu have no audio. Button presses trigger a tone feedback. LED behavior is configurable in `LEDConfig.h`.
@@ -293,7 +293,7 @@ This project recreates the authentic Commlock experience with:
 ### 🔧 How Commlock Works
 
 #### **Activation:**
-- **Trigger**: Press Button 9 (GPIO 48)
+- **Trigger**: Press Button 9 (GPIO 24)
 - **Duration**: 15 seconds (configurable)
 - **Exit**: Any button press or automatic timeout
 

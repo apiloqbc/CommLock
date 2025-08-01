@@ -73,7 +73,7 @@ const char* HOME_VIDEO = "/home.mjpeg";
 
 // Pin configuration
 const uint8_t BUTTON_PINS[TOTAL_VIDEOS] = {
-  46, 35, 16, 17, 19, 20, 21, 47, 48
+  16, 17, 18, 19, 20, 21, 22, 23, 24  // Buttons 1-9 in numerical order
 };
 const uint8_t MENU_BUTTON_PIN = 5;
 
