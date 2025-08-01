@@ -609,7 +609,7 @@ void drawCommlock() {
   display.clear();
   
   // Create a deep blue color for Commlock atmosphere
-  uint16_t commlockBlue = display._gfx->color565(100, 200, 255);
+  uint16_t commlockBlue = display.color565(100, 200, 255);
   display.setTextColor(commlockBlue);
   
   // "COMMLOCK" title
@@ -643,7 +643,9 @@ void drawErrorScreen(ErrorCode error, const char* details) {
   display.setTextColor(WHITE);
   display.setCursor(10, 40);
   display.print("Code: ");
-  display.println((int)error);
+  char errorStr[10];
+  sprintf(errorStr, "%d", (int)error);
+  display.println(errorStr);
   
   display.setCursor(10, 55);
   display.print("Error: ");
@@ -663,14 +665,18 @@ void drawErrorScreen(ErrorCode error, const char* details) {
   display.print("Retry: ");
   display.print(retryCount);
   display.print("/");
-  display.println(MAX_RETRY_ATTEMPTS);
+  char retryStr[10];
+  sprintf(retryStr, "%d", MAX_RETRY_ATTEMPTS);
+  display.println(retryStr);
 }
 
 void drawPerformanceInfo() {
   display.setTextColor(GREEN);
   display.setCursor(10, display.height() - 20);
   display.print("FPS: ");
-  display.print(currentFps, 1);
+  char fpsStr[10];
+  sprintf(fpsStr, "%.1f", currentFps);
+  display.print(fpsStr);
   display.print(" | Mem: ");
   display.print(ESP.getFreeHeap());
   display.print("B");
@@ -804,9 +810,9 @@ void drawCommlockAdvanced() {
   display.clear();
   
   // Create authentic Commlock colors
-  uint16_t commlockBlue = display._gfx->color565(0, 150, 255);
-  uint16_t commlockGreen = display._gfx->color565(0, 255, 100);
-  uint16_t commlockOrange = display._gfx->color565(255, 150, 0);
+  uint16_t commlockBlue = display.color565(0, 150, 255);
+  uint16_t commlockGreen = display.color565(0, 255, 100);
+  uint16_t commlockOrange = display.color565(255, 150, 0);
   
   // Draw CRT effect
   if (COMMLOCK_CRT_EFFECT) {

@@ -108,6 +108,17 @@ public:
     _updateDrawMetrics(micros() - startTime);
   }
   
+  void print(float number, int decimals = 2) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->print(number, decimals);
+    _updateDrawMetrics(micros() - startTime);
+  }
+  
   void println(const char* text) {
     if (!_initialized) {
       _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
@@ -116,6 +127,17 @@ public:
     
     unsigned long startTime = micros();
     _gfx->println(text);
+    _updateDrawMetrics(micros() - startTime);
+  }
+  
+  void println(int number) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->println(number);
     _updateDrawMetrics(micros() - startTime);
   }
   
@@ -137,14 +159,12 @@ public:
     }
     
     unsigned long startTime = micros();
-    
     _gfx->setTextSize(textSize);
     int16_t x1, y1;
     uint16_t w, h;
     _gfx->getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
     _gfx->setCursor((_gfx->width() - w) / 2, y);
-    _gfx->println(text);
-    
+    _gfx->print(text);
     _updateDrawMetrics(micros() - startTime);
   }
   
@@ -154,21 +174,56 @@ public:
       return;
     }
     
-    if (!pDraw) {
-      _lastError = DISPLAY_ERROR_DRAW_FAILED;
-      return;
-    }
-    
     unsigned long startTime = micros();
-    
     try {
       _gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
       _updateDrawMetrics(micros() - startTime);
     } catch (...) {
       _lastError = DISPLAY_ERROR_DRAW_FAILED;
       _errorCount++;
-      Serial.println("❌ Display: JPEG draw failed");
     }
+  }
+  
+  // Color utilities
+  uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+    if (!_initialized) {
+      return 0;
+    }
+    return _gfx->color565(r, g, b);
+  }
+  
+  // Drawing utilities
+  void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->drawFastHLine(x, y, w, color);
+    _updateDrawMetrics(micros() - startTime);
+  }
+  
+  void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->drawRect(x, y, w, h, color);
+    _updateDrawMetrics(micros() - startTime);
+  }
+  
+  void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+    if (!_initialized) {
+      _lastError = DISPLAY_ERROR_NOT_INITIALIZED;
+      return;
+    }
+    
+    unsigned long startTime = micros();
+    _gfx->fillRect(x, y, w, h, color);
+    _updateDrawMetrics(micros() - startTime);
   }
   
   // Getters
