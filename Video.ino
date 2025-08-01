@@ -1,5 +1,6 @@
 #include "DisplayManager.h"
 #include "Logger.h"
+#include "LEDConfig.h"
 #include <LittleFS.h>
 #include "MjpegClass.h"
 #include "DFRobotDFPlayerMini.h"
@@ -22,7 +23,7 @@ DFRobotDFPlayerMini player;
 #define BUTTON_TONE_DURATION 100
 #define MAX_RETRY_ATTEMPTS 3
 #define ERROR_RECOVERY_DELAY 5000
-#define LUNAR_TIME_DURATION 10000 // 10 seconds for lunar time display
+#define COMMLOCK_DURATION 15000 // 15 seconds for Commlock display
 
 // Error codes for better debugging
 enum ErrorCode {
@@ -43,7 +44,7 @@ enum SystemState {
   STATE_HOME,
   STATE_MENU,
   STATE_PLAYING_VIDEO,
-  STATE_LUNAR_TIME,
+  STATE_COMMLOCK,
   STATE_ERROR,
   STATE_RECOVERY
 };
@@ -76,11 +77,19 @@ const uint8_t BUTTON_PINS[TOTAL_VIDEOS] = {
 };
 const uint8_t MENU_BUTTON_PIN = 5;
 
-// Lunar time variables
-int lunarHour = 0;
-int lunarMinute = 0;
-unsigned long lunarStartTime = 0;
-unsigned long lastLunarUpdate = 0;
+// Commlock variables
+int commlockHour = 0;
+int commlockMinute = 0;
+unsigned long commlockStartTime = 0;
+unsigned long lastCommlockUpdate = 0;
+
+// LED system variables
+LEDConfig ledConfigs[TOTAL_VIDEOS];
+
+bool ledActive = false;
+unsigned long ledStartTime = 0;
+unsigned long lastLedBlink = 0;
+bool ledState = false;
 
 // Global system variables
 SystemState currentState = STATE_SPLASH;
@@ -128,18 +137,19 @@ bool allocateBuffer();
 void deallocateBuffer();
 void initializeButtons();
 void initializeDFPlayer();
+void initializeLED();
 void updateButtons();
 bool isButtonPressed(ButtonState& button, uint8_t pin);
 void handleStateMachine();
 void handleSplashState();
 void handleMenuState();
 void handleVideoState();
-void handleLunarTimeState();
+void handleCommlockState();
 void handleErrorState();
 void handleRecoveryState();
 void drawSplashScreen();
 void drawMenu();
-void drawLunarTime();
+void drawCommlock();
 void drawErrorScreen(ErrorCode error, const char* details = nullptr);
 void drawPerformanceInfo();
 bool startVideo(const char* filename, int videoIndex = -1);
@@ -154,13 +164,17 @@ bool attemptRecovery();
 const char* getErrorString(ErrorCode error);
 void updatePerformanceMetrics();
 void printSystemStatus();
-void startLunarTime();
-void updateLunarTime();
+void startCommlock();
+void updateCommlock();
+void startLED(uint8_t videoIndex);
+void updateLED();
+void stopLED();
+void configureLED(uint8_t videoIndex, uint16_t duration, uint16_t interval, bool enabled);
 
 void setup() {
   Serial.begin(115200);
   Logger::begin();
-  Logger::info(LOG_CAT_SYSTEM, "Starting MJPEG Player with Audio...");
+  Logger::info(LOG_CAT_SYSTEM, "Starting MJPEG Player with Commlock...");
   
   initializeSystem();
   splashStartTime = millis();
@@ -172,6 +186,7 @@ void loop() {
   updateButtons();
   handleStateMachine();
   updatePerformanceMetrics();
+  updateLED();
   
   // Adaptive delay based on system load
   unsigned long loopTime = micros() - loopStartTime;
@@ -191,6 +206,7 @@ void initializeSystem() {
   
   initializeButtons();
   initializeDFPlayer();
+  initializeLED();
   drawSplashScreen();
   initializeFileSystem();
   
@@ -215,6 +231,22 @@ void initializeDFPlayer() {
   } else {
     reportError(ERROR_DFPLAYER_INIT_FAILED, "DFPlayer.begin() failed");
   }
+}
+
+void initializeLED() {
+  Logger::info(LOG_CAT_SYSTEM, "Initializing LED system...");
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  
+  // Initialize LED configurations from LEDConfig.h
+  for (int i = 0; i < TOTAL_VIDEOS; i++) {
+    ledConfigs[i] = DEFAULT_LED_CONFIGS[i];
+    Logger::info(LOG_CAT_SYSTEM, "LED config %d: duration=%d ms, interval=%d ms, enabled=%s", 
+                 i + 1, ledConfigs[i].blinkDuration, ledConfigs[i].blinkInterval, 
+                 ledConfigs[i].enabled ? "true" : "false");
+  }
+  
+  Logger::info(LOG_CAT_SYSTEM, "LED system initialized on pin %d", LED_PIN);
 }
 
 void initializeFileSystem() {
@@ -271,10 +303,10 @@ void updateButtons() {
       Logger::debug(LOG_CAT_BUTTON, "Video button %d pressed", i + 1);
       playButtonTone();
       
-      // Special lunar time feature for button 9 (last button)
+      // Commlock feature for button 9 (last button)
       if (i == 8) { // Button 9 (index 8)
-        Logger::info(LOG_CAT_SYSTEM, "Lunar time button pressed - activating special feature");
-        startLunarTime();
+        Logger::info(LOG_CAT_SYSTEM, "Commlock button pressed - activating Commlock display");
+        startCommlock();
       }
     }
   }
@@ -323,8 +355,8 @@ void handleStateMachine() {
       handleMenuState();
       break;
       
-    case STATE_LUNAR_TIME:
-      handleLunarTimeState();
+    case STATE_COMMLOCK:
+      handleCommlockState();
       break;
       
     case STATE_ERROR:
@@ -417,21 +449,21 @@ void handleVideoState() {
   }
 }
 
-void handleLunarTimeState() {
-  // Check if lunar time display should end
-  if (millis() - lunarStartTime >= LUNAR_TIME_DURATION) {
-    Logger::info(LOG_CAT_SYSTEM, "Lunar time display finished, returning to previous state");
+void handleCommlockState() {
+  // Check if Commlock display should end
+  if (millis() - commlockStartTime >= COMMLOCK_DURATION) {
+    Logger::info(LOG_CAT_SYSTEM, "Commlock display finished, returning to previous state");
     returnToHome();
     return;
   }
   
-  // Update lunar time every minute
-  updateLunarTime();
+  // Update Commlock time every minute
+  updateCommlock();
   
   // Handle any button press to exit early
   if (menuButton.wasPressed) {
     menuButton.wasPressed = false;
-    Logger::info(LOG_CAT_SYSTEM, "Menu button pressed during lunar time, returning to home");
+    Logger::info(LOG_CAT_SYSTEM, "Menu button pressed during Commlock, returning to home");
     returnToHome();
     return;
   }
@@ -439,7 +471,7 @@ void handleLunarTimeState() {
   for (int i = 0; i < TOTAL_VIDEOS; i++) {
     if (videoButtons[i].wasPressed) {
       videoButtons[i].wasPressed = false;
-      Logger::info(LOG_CAT_SYSTEM, "Video button pressed during lunar time, returning to home");
+      Logger::info(LOG_CAT_SYSTEM, "Video button pressed during Commlock, returning to home");
       returnToHome();
       return;
     }
@@ -508,7 +540,7 @@ void drawMenu() {
   // Special feature hint
   display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 5);
   display.setTextColor(YELLOW);
-  display.println("Button 9 = Lunar Time");
+  display.println("Button 9 = Commlock");
   
   // Instructions
   display.setCursor(10, 20 + TOTAL_VIDEOS * 12 + 20);
@@ -519,28 +551,28 @@ void drawMenu() {
   drawPerformanceInfo();
 }
 
-void drawLunarTime() {
-  Logger::debug(LOG_CAT_DISPLAY, "Drawing lunar time display");
+void drawCommlock() {
+  Logger::debug(LOG_CAT_DISPLAY, "Drawing Commlock display");
   display.clear();
   
-  // Create a deep blue color for lunar atmosphere
-  uint16_t lunarBlue = display._gfx->color565(100, 200, 255);
-  display.setTextColor(lunarBlue);
+  // Create a deep blue color for Commlock atmosphere
+  uint16_t commlockBlue = display._gfx->color565(100, 200, 255);
+  display.setTextColor(commlockBlue);
   
-  // "LUNAR TIME" title
+  // "COMMLOCK" title
   display.setTextSize(1);
-  display.drawCenteredText("LUNAR TIME", 30);
+  display.drawCenteredText("COMMLOCK", 30);
   
   // Large time display
   display.setTextSize(2);
   char timeStr[10];
-  sprintf(timeStr, "%02d %02d", lunarHour, lunarMinute);
+  sprintf(timeStr, "%02d %02d", commlockHour, commlockMinute);
   display.drawCenteredText(timeStr, 80);
   
   // Subtitle
   display.setTextSize(1);
   display.setTextColor(WHITE);
-  display.drawCenteredText("2001: A Space Odyssey", 120);
+  display.drawCenteredText("1999: A Space Odyssey", 120);
   
   // Status
   display.setCursor(10, display.height() - 20);
@@ -615,6 +647,11 @@ bool startVideo(const char* filename, int videoIndex) {
     startAudio(videoDatabase[videoIndex].audioTrack);
   }
   
+  // Start LED if configured for this video
+  if (videoIndex >= 0 && videoIndex < TOTAL_VIDEOS) {
+    startLED(videoIndex);
+  }
+  
   Logger::info(LOG_CAT_VIDEO, "Playing: %s", filename);
   if (videoIndex >= 0) {
     Logger::info(LOG_CAT_VIDEO, "Video: %s with audio track %d", videoDatabase[videoIndex].displayName, videoDatabase[videoIndex].audioTrack);
@@ -630,6 +667,7 @@ void stopVideo() {
   }
   videoPlaying = false;
   stopAudio();
+  stopLED();
 }
 
 void returnToHome() {
@@ -662,44 +700,100 @@ void stopAudio() {
   }
 }
 
-void startLunarTime() {
-  Logger::info(LOG_CAT_SYSTEM, "Starting lunar time display");
+void startCommlock() {
+  Logger::info(LOG_CAT_SYSTEM, "Starting Commlock display");
   
   // Stop current video if playing
   stopVideo();
   
-  // Initialize lunar time with random values
-  lunarHour = random(0, 24);
-  lunarMinute = random(0, 60);
-  lunarStartTime = millis();
-  lastLunarUpdate = millis();
+  // Initialize Commlock time with random values
+  commlockHour = random(0, 24);
+  commlockMinute = random(0, 60);
+  commlockStartTime = millis();
+  lastCommlockUpdate = millis();
   
   // Change state and draw
-  currentState = STATE_LUNAR_TIME;
-  drawLunarTime();
+  currentState = STATE_COMMLOCK;
+  drawCommlock();
   
-  Logger::info(LOG_CAT_SYSTEM, "Lunar time initialized: %02d:%02d", lunarHour, lunarMinute);
+  Logger::info(LOG_CAT_SYSTEM, "Commlock initialized: %02d:%02d", commlockHour, commlockMinute);
 }
 
-void updateLunarTime() {
+void updateCommlock() {
   unsigned long now = millis();
   
   // Update time every minute (60000ms)
-  if (now - lastLunarUpdate >= 60000) {
-    lastLunarUpdate = now;
+  if (now - lastCommlockUpdate >= 60000) {
+    lastCommlockUpdate = now;
     
-    lunarMinute++;
-    if (lunarMinute >= 60) {
-      lunarMinute = 0;
-      lunarHour++;
-      if (lunarHour >= 24) {
-        lunarHour = 0;
+    commlockMinute++;
+    if (commlockMinute >= 60) {
+      commlockMinute = 0;
+      commlockHour++;
+      if (commlockHour >= 24) {
+        commlockHour = 0;
       }
     }
     
-    Logger::debug(LOG_CAT_SYSTEM, "Lunar time updated: %02d:%02d", lunarHour, lunarMinute);
-    drawLunarTime();
+    Logger::debug(LOG_CAT_SYSTEM, "Commlock time updated: %02d:%02d", commlockHour, commlockMinute);
+    drawCommlock();
   }
+}
+
+void startLED(uint8_t videoIndex) {
+  if (videoIndex >= TOTAL_VIDEOS) return;
+  
+  LEDConfig& config = ledConfigs[videoIndex];
+  if (!config.enabled) return;
+  
+  Logger::info(LOG_CAT_SYSTEM, "Starting LED for video %d (duration: %d ms, interval: %d ms)", 
+               videoIndex + 1, config.blinkDuration, config.blinkInterval);
+  
+  ledActive = true;
+  ledStartTime = millis();
+  lastLedBlink = millis();
+  ledState = true;
+  digitalWrite(LED_PIN, HIGH);
+}
+
+void updateLED() {
+  if (!ledActive) return;
+  
+  unsigned long now = millis();
+  
+  // Check if LED should stop
+  if (now - ledStartTime >= ledConfigs[currentVideoIndex].blinkDuration) {
+    stopLED();
+    return;
+  }
+  
+  // Toggle LED based on interval
+  if (now - lastLedBlink >= ledConfigs[currentVideoIndex].blinkInterval) {
+    lastLedBlink = now;
+    ledState = !ledState;
+    digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+  }
+}
+
+void stopLED() {
+  if (ledActive) {
+    Logger::debug(LOG_CAT_SYSTEM, "Stopping LED");
+    ledActive = false;
+    digitalWrite(LED_PIN, LOW);
+  }
+}
+
+void configureLED(uint8_t videoIndex, uint16_t duration, uint16_t interval, bool enabled) {
+  if (videoIndex >= TOTAL_VIDEOS) return;
+  
+  LEDConfig& config = ledConfigs[videoIndex];
+  config.videoIndex = videoIndex;
+  config.blinkDuration = duration;
+  config.blinkInterval = interval;
+  config.enabled = enabled;
+  
+  Logger::info(LOG_CAT_SYSTEM, "LED configured for video %d: duration=%d ms, interval=%d ms, enabled=%s", 
+               videoIndex + 1, duration, interval, enabled ? "true" : "false");
 }
 
 void reportError(ErrorCode error, const char* details) {
@@ -787,6 +881,7 @@ void printSystemStatus() {
   Logger::info(LOG_CAT_SYSTEM, "Total Videos: %d", TOTAL_VIDEOS);
   Logger::info(LOG_CAT_SYSTEM, "Target FPS: %d", TARGET_FPS);
   Logger::info(LOG_CAT_SYSTEM, "MJPEG Buffer: %d bytes", MJPEG_BUFFER_SIZE);
+  Logger::info(LOG_CAT_SYSTEM, "LED Pin: %d", LED_PIN);
   Logger::info(LOG_CAT_SYSTEM, "====================");
 }
 
