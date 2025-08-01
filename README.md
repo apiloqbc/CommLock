@@ -138,33 +138,7 @@ ffmpeg -i input.mp4 -t 5 -vcodec mjpeg -an -s 320x220 -aspect 1:1 -q:v 5 output.
 
 > **Tip:** Resize output to 128x160 to match display resolution.
 
-## 📁 File Structure
 
-```
-Video/
-├── Video.ino                    # Main sketch
-├── DisplayManager.h             # Display management class
-├── DisplayExample.ino           # Usage example
-├── PINS_ESP32-S3-LCD-ST7735_1_8.h  # Pin configuration
-├── MjpegClass.h                # MJPEG decoding class
-├── README.md                   # Documentation
-├── data/                       # MJPEG video files
-│   ├── home.mjpeg             # Home video (no audio)
-│   ├── video_1.mjpeg          # Video 1
-│   ├── video_2.mjpeg          # Video 2
-│   └── ...                     # Other videos
-└── images/                     # Documentation images
-    ├── board.jpg
-    ├── pins.jpg
-    ├── wiring_diagram.svg      # Complete wiring diagram
-    └── wiring_diagram_simple.svg  # Simplified wiring diagram
-
-MicroSD Card (DFPlayer Mini):
-├── 0001.mp3                   # Audio for Video 1
-├── 0002.mp3                   # Audio for Video 2
-├── 0003.mp3                   # Audio for Video 3
-└── ...                        # Other audio files
-```
 
 ## 🚀 Usage
 
@@ -230,34 +204,7 @@ The complete system provides a professional multimedia experience with:
 
 ## 🔧 DisplayManager Class
 
-Display management has been simplified through the `DisplayManager` class:
-
-```cpp
-// Initialization
-DisplayManager display;
-display.begin();
-
-// Basic operations
-display.clear();
-display.setTextColor(WHITE);
-display.setTextSize(2);
-display.setCursor(10, 20);
-display.println("Text");
-
-// Centered text
-display.drawCenteredText("Centered", 50, 2);
-
-// JPEG frame
-display.drawJpegFrame(pDraw);
-```
-
-### Main Methods
-
-- `begin()` - Initialize display
-- `clear()` - Clear screen
-- `drawCenteredText()` - Draw centered text
-- `drawJpegFrame()` - Draw JPEG frame
-- `width()/height()` - Display dimensions
+Display management has been simplified through the `DisplayManager` class, providing easy-to-use methods for display operations including text rendering, screen clearing, and JPEG frame drawing.
 
 ## 🎵 Audio Management
 
