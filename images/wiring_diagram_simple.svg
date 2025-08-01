@@ -24,7 +24,7 @@
   <rect width="1000" height="700" fill="#f8f8f8"/>
 
   <!-- Title -->
-  <text x="500" y="25" text-anchor="middle" class="title">ESP32-S3 Video Player - Logical System Diagram</text>
+  <text x="500" y="25" text-anchor="middle" class="title">ESP32-S3 Video Player - System Components</text>
 
   <!-- ESP32-S3 Board -->
   <rect x="30" y="50" width="180" height="120" class="component" rx="8"/>
@@ -83,36 +83,6 @@
   <text x="240" y="235" text-anchor="middle" class="text">MP3 Files</text>
   <text x="240" y="250" text-anchor="middle" class="text">0001.mp3, etc.</text>
 
-  <!-- Logical Connections -->
-  
-  <!-- Power Distribution -->
-  <line x1="90" y1="230" x2="90" y2="100" class="connection power-line"/>
-  <text x="100" y="120" class="text">Power Distribution</text>
-  
-  <!-- Display Connection -->
-  <line x1="210" y1="100" x2="280" y2="100" class="connection data-line"/>
-  <text x="245" y="90" class="text">SPI Communication</text>
-  
-  <!-- DFPlayer Connection -->
-  <line x1="210" y1="100" x2="280" y2="220" class="connection data-line"/>
-  <text x="245" y="160" class="text">Serial Communication</text>
-  
-  <!-- Audio Output -->
-  <line x1="340" y1="240" x2="450" y2="310" class="connection audio-line"/>
-  <text x="395" y="275" class="text">Audio Output</text>
-  
-  <!-- Button Matrix -->
-  <line x1="210" y1="100" x2="450" y2="100" class="connection button-line"/>
-  <text x="330" y="90" class="text">Button Matrix</text>
-  
-  <!-- Buzzer Connection -->
-  <line x1="210" y1="100" x2="450" y2="230" class="connection audio-line"/>
-  <text x="330" y="165" class="text">Tone Output</text>
-  
-  <!-- MicroSD Connection -->
-  <line x1="240" y1="230" x2="340" y2="220" class="connection data-line"/>
-  <text x="290" y="210" class="text">File Access</text>
-  
   <!-- Legend -->
   <rect x="600" y="50" width="250" height="150" class="component" rx="5"/>
   <text x="725" y="70" text-anchor="middle" class="title">Legend</text>
