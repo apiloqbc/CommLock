@@ -108,24 +108,38 @@ The system supports up to 9 buttons for video selection:
 
 > **Note:** Home video and menu have no audio. Button presses trigger a tone feedback. LED behavior is configurable in `LEDConfig.h`.
 
-## 🚀 Commlock System
+## 🚀 Commlock System - Level 1 Enhanced
 
-### Special Feature: Commlock Display
+### Special Feature: Authentic Commlock Display
 
-**Button 9** activates a special Commlock display inspired by "1999: A Space Odyssey":
+**Button 9** activates a professional Commlock display inspired by "1999: A Space Odyssey":
 
-- **Lunar Time Display** with deep blue aesthetic
+- **Real-time Lunar Time Display** with seconds (HH:MM:SS)
+- **Authentic Audio Feedback** with startup beep, ticks, and confirmations
+- **Advanced Visual Effects** with CRT scan lines and glow effects
+- **Lunar Day Progress** calculation and display
 - **15-second duration** (configurable)
-- **Random time initialization** for authentic feel
-- **Space-themed interface** with "1999: A Space Odyssey" subtitle
-- **Exit with any button** or automatic return
+- **Professional Space Interface** with authentic colors
 
-### Commlock Features:
-- ✅ **Authentic Commlock Interface**
-- ✅ **Lunar Time Simulation**
-- ✅ **Deep Blue Color Scheme**
-- ✅ **Configurable Duration**
-- ✅ **Professional Integration**
+### Commlock Level 1 Features:
+- ✅ **Authentic Audio System**
+  - Startup beep (1200Hz, 200ms)
+  - Tick sound every second (800Hz, 50ms)
+  - Confirmation sounds for interactions (1500Hz, 150ms)
+- ✅ **Realistic Lunar Time**
+  - Real-time seconds display
+  - Accurate lunar day progress calculation
+  - Authentic time formatting
+- ✅ **Advanced Visual Effects**
+  - CRT scan line effects
+  - Subtle glow effects around edges
+  - Authentic Commlock color scheme
+  - Professional visual styling
+- ✅ **Enhanced Interface**
+  - Larger time display with seconds
+  - Lunar day progress percentage
+  - Professional Commlock styling
+  - Authentic 1999: A Space Odyssey theme
 
 ## 🔴 LED System
 
@@ -154,6 +168,75 @@ Edit `LEDConfig.h` to customize LED behavior:
 - **Slow Ambient**: `{1, 10000, 1000, true}` - 10s, 1s interval
 - **Continuous**: `{3, 15000, 200, true}` - 15s, 200ms interval
 - **Disabled**: `{2, 5000, 500, false}` - LED off for video 3
+
+## 🎵 Commlock Audio System
+
+### Authentic Sound Design
+
+The Commlock system features professional audio feedback:
+
+#### Audio Frequencies:
+- **Startup Beep**: 1200Hz, 200ms - Activates when Commlock starts
+- **Tick Sound**: 800Hz, 50ms - Plays every second for authentic feel
+- **Confirmation**: 1500Hz, 150ms - Plays when buttons are pressed
+
+#### Audio Implementation:
+```cpp
+// Audio functions in Video.ino
+void playCommlockBeep();     // Startup sound
+void playCommlockTick();     // Second tick
+void playCommlockConfirm();  // Button confirmation
+```
+
+## 🌙 Lunar Time System
+
+### Realistic Lunar Calculations
+
+The Commlock displays authentic lunar time:
+
+#### Time Features:
+- **Real-time Seconds**: Updates every second (HH:MM:SS)
+- **Lunar Day Progress**: Shows percentage of lunar day completed
+- **Accurate Calculations**: Based on actual lunar day duration
+
+#### Technical Implementation:
+```cpp
+// Lunar time constants
+#define LUNAR_DAY_HOURS 24
+#define LUNAR_DAY_MINUTES (LUNAR_DAY_HOURS * 60)
+#define LUNAR_DAY_SECONDS (LUNAR_DAY_MINUTES * 60)
+#define LUNAR_DAY_MILLIS (LUNAR_DAY_SECONDS * 1000L)
+
+// Time update functions
+void updateLunarTimeRealistic();
+void calculateLunarDayProgress();
+```
+
+## 🎨 Visual Effects System
+
+### Advanced Commlock Interface
+
+Professional visual effects for authentic experience:
+
+#### Visual Features:
+- **CRT Scan Lines**: Subtle blue scan lines every 100ms
+- **Glow Effects**: Subtle blue glow around display edges
+- **Authentic Colors**: Professional Commlock color scheme
+- **Enhanced Typography**: Larger time display with seconds
+
+#### Color Scheme:
+- **Commlock Blue**: RGB(0, 150, 255) - Primary interface color
+- **Commlock Green**: RGB(0, 255, 100) - Secondary elements
+- **Commlock Orange**: RGB(255, 150, 0) - Progress indicators
+
+#### Technical Implementation:
+```cpp
+// Visual effect functions
+void drawCommlockAdvanced();
+void drawCommlockCRTEffect();
+void drawCommlockGlowEffect();
+void updateCommlockVisualEffects();
+```
 
 ## 📚 Required Libraries
 
