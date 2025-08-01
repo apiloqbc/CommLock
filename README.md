@@ -44,9 +44,6 @@ https://zonnepanelen.wouterlood.com/31-1-8-inch-128160-pixel-spi-tft-wiring-to-a
 | 5Vin          | GND         |
 | GND           | GND         |
 
-
-![Pinout](images/pins.jpg)
-![Board](images/board.jpg)
 <img src="images/pins.jpg" alt="Pinout" width="400"/>
 <img src="images/board.jpg" alt="Board" width="300"/>
 
